@@ -1,0 +1,51 @@
+{
+  "automaton_id": "dfa_regex_ends_with_abb",
+  "input_string": "ababb",
+  "accepted": true,
+  "final_states": ["q3"],
+  "execution_time_ms": 1.45,
+  "steps": [
+    {
+      "step": 0,
+      "current_states": ["q0"],
+      "symbol_read": null,
+      "transition_taken": null,
+      "next_states": ["q0"]
+    },
+    {
+      "step": 1,
+      "current_states": ["q0"],
+      "symbol_read": "a",
+      "transition_taken": { "from_state": "q0", "to_state": "q1", "symbol": "a" },
+      "next_states": ["q1"]
+    },
+    {
+      "step": 2,
+      "current_states": ["q1"],
+      "symbol_read": "b",
+      "transition_taken": { "from_state": "q1", "to_state": "q2", "symbol": "b" },
+      "next_states": ["q2"]
+    },
+    {
+      "step": 3,
+      "current_states": ["q2"],
+      "symbol_read": "a",
+      "transition_taken": { "from_state": "q2", "to_state": "q1", "symbol": "a" },
+      "next_states": ["q1"]
+    },
+    {
+      "step": 4,
+      "current_states": ["q1"],
+      "symbol_read": "b",
+      "transition_taken": { "from_state": "q1", "to_state": "q2", "symbol": "b" },
+      "next_states": ["q2"]
+    },
+    {
+      "step": 5,
+      "current_states": ["q2"],
+      "symbol_read": "b",
+      "transition_taken": { "from_state": "q2", "to_state": "q3", "symbol": "b" },
+      "next_states": ["q3"]
+    }
+  ]
+}

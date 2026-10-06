@@ -1,0 +1,37 @@
+{
+  "automaton_id": "dfa_regex_ends_with_abb",
+  "input_string": "ababb",
+  "predicted_accepted": true,
+  "confidence": 0.982,
+  "node_importance": {
+    "q0": 0.35,
+    "q1": 0.65,
+    "q2": 0.88,
+    "q3": 0.97
+  },
+  "edge_importance": [
+    { "from_state": "q2", "to_state": "q3", "symbol": "b", "importance": 0.96 },
+    { "from_state": "q1", "to_state": "q2", "symbol": "b", "importance": 0.84 },
+    { "from_state": "q2", "to_state": "q1", "symbol": "a", "importance": 0.45 },
+    { "from_state": "q0", "to_state": "q1", "symbol": "a", "importance": 0.38 },
+    { "from_state": "q0", "to_state": "q0", "symbol": "b", "importance": 0.12 },
+    { "from_state": "q1", "to_state": "q1", "symbol": "a", "importance": 0.10 },
+    { "from_state": "q3", "to_state": "q1", "symbol": "a", "importance": 0.05 },
+    { "from_state": "q3", "to_state": "q0", "symbol": "b", "importance": 0.05 }
+  ],
+  "critical_subgraph": {
+    "nodes": ["q1", "q2", "q3"],
+    "edges": [
+      { "from_state": "q1", "to_state": "q2", "symbol": "b" },
+      { "from_state": "q2", "to_state": "q3", "symbol": "b" }
+    ]
+  },
+  "feature_attributions": {
+    "is_accepting": 0.44,
+    "final_transition_match": 0.28,
+    "visit_frequency": 0.16,
+    "in_degree": 0.08,
+    "is_start": 0.04
+  },
+  "explanation_summary": "Transitions q1 --b--> q2 and q2 --b--> q3 form the critical suffix match driving the automaton to accepting state q3, which heavily influenced the acceptance decision."
+}

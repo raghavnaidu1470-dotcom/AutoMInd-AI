@@ -1,0 +1,26 @@
+{
+  "id": "dfa_a_star_b",
+  "name": "DFA for a*b",
+  "type": "DFA",
+  "alphabet": ["a", "b"],
+  "start_state": "q0",
+  "states": [
+    { "id": "q0", "label": "q0", "is_start": true, "is_accepting": false },
+    { "id": "q1", "label": "q1", "is_start": false, "is_accepting": true },
+    { "id": "trap", "label": "trap", "is_start": false, "is_accepting": false }
+  ],
+  "transitions": [
+    { "id": "t1", "from_state": "q0", "to_state": "q0", "symbol": "a" },
+    { "id": "t2", "from_state": "q0", "to_state": "q1", "symbol": "b" },
+    { "id": "t3", "from_state": "q1", "to_state": "trap", "symbol": "a" },
+    { "id": "t4", "from_state": "q1", "to_state": "trap", "symbol": "b" },
+    { "id": "t5", "from_state": "trap", "to_state": "trap", "symbol": "a" },
+    { "id": "t6", "from_state": "trap", "to_state": "trap", "symbol": "b" }
+  ],
+  "metadata": {
+    "regex": "a*b",
+    "state_count": 3,
+    "transition_count": 6,
+    "is_minimized": true
+  }
+}
