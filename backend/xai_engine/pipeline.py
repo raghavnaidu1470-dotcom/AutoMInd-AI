@@ -6,7 +6,7 @@ Owned by: Member B (GNN + Explainable AI Module)
 Coordinates the complete Explainable AI workflow:
   1. Ingests Automaton JSON and Simulation Trace.
   2. Converts into tensor graph features via `AutomataGraphConverter`.
-  3. Predicts acceptance & confidence via `AutomataGNNClassifier`.
+  3. Predicts acceptance & confidence via `AutomataGNNClassifier` (using trained weights).
   4. Extracts edge/subgraph masks via `AutomataGNNExplainer`.
   5. Computes feature-level attributions via `AutomataSHAPExplainer`.
   6. Packages the output conforming strictly to `docs/json_schema.md`.
@@ -14,17 +14,23 @@ Coordinates the complete Explainable AI workflow:
 
 from typing import Dict, Any, Optional
 import os
+import logging
+from pathlib import Path
 
 from .graph_builder.converter import AutomataGraphConverter
 from .gnn_model.model import AutomataGNNClassifier, TORCH_AVAILABLE
 from .gnn_explainer.explainer import AutomataGNNExplainer
 from .shap_explainer.explainer import AutomataSHAPExplainer
 
+logger = logging.getLogger(__name__)
+
 
 class XAIPipeline:
     """
     Unified pipeline delivering end-to-end explainability for finite automata.
     """
+
+    DEFAULT_CHECKPOINT_FILENAMES = ["automata_gnn_best.pt", "automata_gnn.pt"]
 
     def __init__(self, model_checkpoint_path: Optional[str] = None):
         self.converter = AutomataGraphConverter()
@@ -33,12 +39,37 @@ class XAIPipeline:
 
         if TORCH_AVAILABLE:
             self.model = AutomataGNNClassifier()
-            if model_checkpoint_path and os.path.exists(model_checkpoint_path):
+            checkpoint = self._resolve_checkpoint_path(model_checkpoint_path)
+            if checkpoint and os.path.exists(checkpoint):
                 import torch
-                self.model.load_state_dict(torch.load(model_checkpoint_path, map_location="cpu"))
+                try:
+                    self.model.load_state_dict(torch.load(checkpoint, map_location="cpu"))
+                    logger.info("Loaded trained AutomataGNNClassifier checkpoint from %s", checkpoint)
+                except Exception as e:
+                    logger.warning("Could not load checkpoint from %s: %s", checkpoint, e)
             self.model.eval()
         else:
             self.model = None
+
+    def _resolve_checkpoint_path(self, user_path: Optional[str]) -> Optional[str]:
+        """Resolves user or default model checkpoint path."""
+        if user_path and os.path.exists(user_path):
+            return user_path
+
+        # Search relative to repository root and common locations
+        repo_root = Path(__file__).resolve().parent.parent.parent
+        candidate_dirs = [
+            repo_root / "storage" / "models",
+            Path("storage/models").resolve(),
+        ]
+
+        for cand_dir in candidate_dirs:
+            for fname in self.DEFAULT_CHECKPOINT_FILENAMES:
+                path = cand_dir / fname
+                if path.exists():
+                    return str(path)
+
+        return None
 
     def explain(
         self,
@@ -50,7 +81,7 @@ class XAIPipeline:
         Executes end-to-end explainability pipeline on an automaton and simulation trace.
 
         Args:
-            automaton_data: Automaton instance or dict.
+            automaton_data: Automaton instance or dict conforming to docs/json_schema.md.
             simulation_trace: Optional SimulationResult instance or dict.
             input_string: Candidate string tested.
 
@@ -88,7 +119,9 @@ class XAIPipeline:
         )
 
         # 4. SHAP feature attribution
-        feature_attributions = self.shap_explainer.explain(self.model, graph_rep)
+        feature_attributions = self.shap_explainer.explain(
+            self.model, graph_rep, target_class=1 if predicted_accepted else 0
+        )
 
         # 5. Assemble final response conforming to docs/json_schema.md
         return {
