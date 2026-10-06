@@ -178,6 +178,10 @@ source venv/bin/activate       # On Windows: venv\Scripts\activate
 # Install dependencies
 pip install -r api/requirements.txt
 
+# (Optional) Re-train the GNN model on synthetic automata
+# Note: Pre-trained weights are already included in storage/models/automata_gnn.pt!
+python -m backend.xai_engine.train --epochs 35
+
 # Start the FastAPI server
 uvicorn api.main:app --reload --port 8000
 ```
@@ -202,6 +206,7 @@ The web dashboard will be available at:
 ```bash
 cd AutoMind-AI
 pytest tests/
+npm --prefix frontend run build
 ```
 
 ---

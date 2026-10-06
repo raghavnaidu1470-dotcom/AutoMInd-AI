@@ -1,10 +1,24 @@
 import React from 'react';
 
-export default function XAIExplanationPanel({ xaiExplanation, loading }) {
+export default function XAIExplanationPanel({ xaiExplanation, loading, isLiveMode }) {
   if (loading) {
     return (
-      <div className="glass-panel xai-panel" style={{ alignItems: 'center', justifyContent: 'center' }}>
-        <p style={{ color: 'var(--text-secondary)' }}>Calculating GNN & SHAP Attributions...</p>
+      <div className="glass-panel xai-panel" style={{ alignItems: 'center', justifyContent: 'center', minHeight: '360px' }}>
+        <div style={{ textAlign: 'center' }}>
+          <div
+            style={{
+              width: '36px',
+              height: '36px',
+              border: '3px solid rgba(6, 182, 212, 0.2)',
+              borderTopColor: 'var(--accent-cyan)',
+              borderRadius: '50%',
+              animation: 'spin 0.8s linear infinite',
+              margin: '0 auto 1rem',
+            }}
+          />
+          <p style={{ color: 'var(--text-primary)', fontWeight: '600' }}>Computing GNN & SHAP Attributions...</p>
+          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Evaluating graph message passing & edge masks</span>
+        </div>
       </div>
     );
   }
@@ -19,7 +33,7 @@ export default function XAIExplanationPanel({ xaiExplanation, loading }) {
 
   const {
     predicted_accepted,
-    confidence,
+    confidence = 0.0,
     edge_importance = [],
     feature_attributions = {},
     critical_subgraph,
@@ -30,12 +44,27 @@ export default function XAIExplanationPanel({ xaiExplanation, loading }) {
 
   return (
     <div className="glass-panel xai-panel" id="xai-explanation-panel">
-      {/* Header with Title & Badge */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      {/* Header with Title & Badges */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem' }}>
         <div>
-          <h2 style={{ fontSize: '1.1rem', fontWeight: '700' }}>Explainable AI Analytics</h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <h2 style={{ fontSize: '1.1rem', fontWeight: '700' }}>Explainable AI Analytics</h2>
+            <span
+              style={{
+                fontSize: '0.7rem',
+                fontFamily: 'var(--font-mono)',
+                padding: '0.15rem 0.5rem',
+                borderRadius: '4px',
+                background: isLiveMode ? 'rgba(16, 185, 129, 0.15)' : 'rgba(255, 255, 255, 0.05)',
+                color: isLiveMode ? '#34d399' : 'var(--text-muted)',
+                border: `1px solid ${isLiveMode ? 'rgba(16, 185, 129, 0.3)' : 'var(--border-subtle)'}`,
+              }}
+            >
+              {isLiveMode ? '⚡ automata_gnn.pt' : 'Fixture Fallback'}
+            </span>
+          </div>
           <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-            GNNExplainer + SHAP Attribution
+            GNNExplainer Subgraphs + SHAP Feature Attribution
           </span>
         </div>
         <span
@@ -58,7 +87,7 @@ export default function XAIExplanationPanel({ xaiExplanation, loading }) {
             {(confidence * 100).toFixed(1)}%
           </div>
           <div className="bar-track">
-            <div className="bar-fill bar-fill-cyan" style={{ width: `${confidence * 100}%` }} />
+            <div className="bar-fill bar-fill-cyan" style={{ width: `${Math.min(confidence * 100, 100)}%` }} />
           </div>
         </div>
 
@@ -112,13 +141,16 @@ export default function XAIExplanationPanel({ xaiExplanation, loading }) {
                 <div
                   className="bar-fill"
                   style={{
-                    width: `${e.importance * 100}%`,
+                    width: `${Math.min(e.importance * 100, 100)}%`,
                     background: e.importance > 0.8 ? 'linear-gradient(90deg, #f43f5e, #fb7185)' : 'linear-gradient(90deg, #0284c7, var(--accent-cyan))',
                   }}
                 />
               </div>
             </div>
           ))}
+          {topEdges.length === 0 && (
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>No edge attributions available.</span>
+          )}
         </div>
       </div>
 
