@@ -1,7 +1,8 @@
 /**
  * Frontend API Service
+ * ====================
  * Handles HTTP communication with the FastAPI backend orchestrator,
- * with graceful fallback to built-in mock data for standalone preview.
+ * with graceful fallback to built-in mock fixtures if the backend is unreachable.
  */
 
 import {
@@ -14,15 +15,21 @@ const BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
 export const api = {
   /**
-   * Health check endpoint
+   * Health check endpoint to verify backend connectivity
    */
   async checkHealth() {
     try {
       const res = await fetch(`${BASE_URL}/health`);
-      if (!res.ok) throw new Error('API offline');
-      return await res.json();
-    } catch {
-      return { status: 'mock_mode', service: 'Standalone Frontend' };
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      return { ...data, isLive: true };
+    } catch (err) {
+      return {
+        status: 'offline',
+        service: 'AutoMind Standalone (Mock Mode)',
+        isLive: false,
+        error: err.message,
+      };
     }
   },
 
@@ -36,11 +43,20 @@ export const api = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ regex }),
       });
-      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
-      return await res.json();
+      if (!res.ok) {
+        const errorDetail = await res.text().catch(() => '');
+        throw new Error(`Server returned ${res.status}: ${errorDetail}`);
+      }
+      const data = await res.json();
+      return { ...data, isLive: true };
     } catch (err) {
-      console.warn('Backend unavailable, using mock automata bundle:', err);
-      return { ...MOCK_AUTOMATA_BUNDLE, regex };
+      console.warn('Backend /api/automata/parse unavailable, using mock automata fallback:', err.message);
+      return {
+        ...MOCK_AUTOMATA_BUNDLE,
+        regex,
+        isLive: false,
+        fallbackReason: err.message,
+      };
     }
   },
 
@@ -57,19 +73,25 @@ export const api = {
           input_string: inputString,
         }),
       });
-      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
-      return await res.json();
+      if (!res.ok) {
+        const errorDetail = await res.text().catch(() => '');
+        throw new Error(`Server returned ${res.status}: ${errorDetail}`);
+      }
+      const data = await res.json();
+      return { ...data, isLive: true };
     } catch (err) {
-      console.warn('Backend unavailable, using mock simulation result:', err);
+      console.warn('Backend /api/simulation/run unavailable, using mock simulation fallback:', err.message);
       return {
         ...MOCK_SIMULATION_RESULT,
         input_string: inputString,
+        isLive: false,
+        fallbackReason: err.message,
       };
     }
   },
 
   /**
-   * Requests GNN prediction, GNNExplainer critical subgraphs, and SHAP attributions
+   * Requests real GNN prediction, GNNExplainer critical subgraphs, and SHAP attributions
    */
   async getExplanation(automaton, simulationTrace, inputString) {
     try {
@@ -82,13 +104,19 @@ export const api = {
           input_string: inputString,
         }),
       });
-      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
-      return await res.json();
+      if (!res.ok) {
+        const errorDetail = await res.text().catch(() => '');
+        throw new Error(`Server returned ${res.status}: ${errorDetail}`);
+      }
+      const data = await res.json();
+      return { ...data, isLive: true };
     } catch (err) {
-      console.warn('Backend unavailable, using mock XAI explanation:', err);
+      console.warn('Backend /api/xai/explain unavailable, using mock explanation fallback:', err.message);
       return {
         ...MOCK_XAI_EXPLANATION,
         input_string: inputString,
+        isLive: false,
+        fallbackReason: err.message,
       };
     }
   },
