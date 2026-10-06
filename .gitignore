@@ -60,6 +60,9 @@ storage/history/*.json
 storage/models/*.pt
 storage/models/*.pth
 !storage/models/.gitkeep
+!storage/models/automata_gnn.pt
+!storage/models/automata_gnn_best.pt
+!storage/models/training_meta.json
 
 # IDEs & OS
 .DS_Store
