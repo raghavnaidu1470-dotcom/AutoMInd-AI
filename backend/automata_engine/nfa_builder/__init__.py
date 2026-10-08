@@ -1,7 +1,5 @@
 """
-NFA Builder Package (Member A)
-==============================
-Constructs Non-Deterministic Finite Automata from Regex ASTs using Thompson's construction.
+NFA Builder Package
 """
 
 from .builder import NFABuilder

@@ -1,15 +1,16 @@
 """
 Automata Routes
 ===============
-Owned by: Member C (API, Visualization & Integration)
+Owned by: Member C (API, Visualization & Integration) & Member A (Automata Engine)
 Endpoints for submitting regular expressions and fetching NFAs, DFAs, and Minimized DFAs.
 """
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 from typing import Dict, Any, List
 
 from backend.automata_engine.models import Automaton
+from backend.automata_engine.regex_parser.parser import RegexSyntaxError
 from ..services.automata_service import AutomataService
 from ..services.storage_service import StorageService
 
@@ -35,16 +36,23 @@ def parse_regex(payload: RegexRequest):
     Submits a regular expression to construct its equivalent NFA, DFA,
     and Minimized DFA.
     """
-    if not payload.regex.strip():
+    if not payload.regex or not payload.regex.strip():
         raise HTTPException(status_code=400, detail="Regex cannot be empty.")
 
-    bundle = automata_service.process_regex(payload.regex)
-    return AutomataBundleResponse(
-        regex=payload.regex,
-        nfa=bundle["nfa"],
-        dfa=bundle["dfa"],
-        minimized_dfa=bundle["minimized_dfa"],
-    )
+    try:
+        bundle = automata_service.process_regex(payload.regex)
+        return AutomataBundleResponse(
+            regex=payload.regex,
+            nfa=bundle["nfa"],
+            dfa=bundle["dfa"],
+            minimized_dfa=bundle["minimized_dfa"],
+        )
+    except RegexSyntaxError as e:
+        raise HTTPException(status_code=400, detail=f"Regex syntax error: {str(e)}")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal automata processing error: {str(e)}")
 
 
 @router.get("/samples", response_model=List[str])

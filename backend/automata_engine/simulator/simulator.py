@@ -3,51 +3,33 @@ Automata String Simulator & Execution Trace Logger
 ===================================================
 Owned by: Member A (Automata Theory Engine)
 
-Module Overview:
-----------------
 This module tests whether an input string belongs to the formal language
 defined by an automaton (DFA or NFA). It simulates string consumption symbol
 by symbol and captures an ordered execution trace of every step.
 
-Key Requirements:
------------------
-1. DFA Simulation:
-   - Starts at `automaton.start_state`.
-   - For each character in `input_string`:
-       - Finds transition matching `(current_state, symbol)`.
-       - If no transition exists, transitions to trap or halts immediately (rejected).
-       - Appends a `SimulationStep` with `symbol_read`, `transition_taken`, `next_states`.
-   - String is accepted iff final state has `is_accepting == True`.
-2. NFA Simulation:
-   - Tracks a set of concurrent active states (starting with ε-closure of `start_state`).
-   - For each character, moves to next states and computes ε-closure.
-   - String is accepted iff at least one active state at the end is accepting.
-
-Expected Input:
----------------
-  automaton: Automaton
-  input_string: str (e.g., "ababb", "", "101")
-
-Expected Output:
-----------------
-  SimulationResult (conforming to docs/json_schema.md)
+Supports:
+  - Deterministic DFA simulation
+  - Set-of-states NFA simulation with epsilon-closure
+  - Empty string evaluation
+  - Symbols outside the alphabet (early rejection with clear trace record)
+  - Long input strings with fast transition lookup
 """
 
 import time
-from typing import List, Optional
+from typing import List, Set, Dict, Tuple, Optional
+
 from ..models import Automaton, SimulationResult, SimulationStep, Transition
+
+
+def _state_sort_key(s_id: str):
+    if s_id.startswith("q") and s_id[1:].isdigit():
+        return int(s_id[1:])
+    return s_id
 
 
 class AutomataSimulator:
     """
-    Simulates string execution over finite automata.
-
-    TODO (Member A):
-      1. Implement deterministic step evaluation for DFAs.
-      2. Implement non-deterministic branch tracking (with ε-closure) for NFAs.
-      3. Construct ordered `SimulationStep` items.
-      4. Measure and populate `execution_time_ms`.
-      5. Return canonical `SimulationResult`.
+    Simulates string execution over finite automata (DFA and NFA).
     """
 
     def __init__(self):
@@ -58,25 +40,206 @@ class AutomataSimulator:
         Runs an input string on the given automaton and records the trace.
 
         Args:
-            automaton (Automaton): The finite automaton (NFA or DFA).
+            automaton (Automaton): The finite automaton (NFA, DFA, or MINIMIZED_DFA).
             input_string (str): Candidate string to validate.
 
         Returns:
             SimulationResult: Execution trace, final states, and acceptance verdict.
-
-        Raises:
-            NotImplementedError: Until Member A implements the simulation engine.
         """
-        # --- PLACEHOLDER FOR MEMBER A ---
-        # Implementation roadmap:
-        # 1. Initialize active states = [automaton.start_state] (or epsilon closure for NFA)
-        # 2. Record initial step 0
-        # 3. For idx, char in enumerate(input_string):
-        #      next_states = evaluate_transition(active_states, char)
-        #      record step
-        # 4. accept = any(s in accepting_states for s in active_states)
-        # 5. return SimulationResult(...)
-        raise NotImplementedError(
-            "AutomataSimulator.simulate() is assigned to Member A. "
-            "Please implement the string execution and trace logging engine."
+        if automaton.type == "NFA":
+            return self._simulate_nfa(automaton, input_string)
+        return self._simulate_dfa(automaton, input_string)
+
+    def _simulate_dfa(self, automaton: Automaton, input_string: str) -> SimulationResult:
+        """Simulates candidate string execution on a DFA."""
+        start_time = time.perf_counter()
+        accepting_states: Set[str] = {s.id for s in automaton.states if s.is_accepting}
+
+        # Build fast transition map: (from_state, symbol) -> Transition
+        trans_map: Dict[Tuple[str, str], Transition] = {}
+        for t in automaton.transitions:
+            key = (t.from_state, t.symbol)
+            if key not in trans_map:
+                trans_map[key] = t
+
+        steps: List[SimulationStep] = []
+        current_state = automaton.start_state
+
+        # Step 0: Initial state configuration
+        steps.append(
+            SimulationStep(
+                step=0,
+                current_states=[current_state],
+                symbol_read=None,
+                transition_taken=None,
+                next_states=[current_state],
+            )
+        )
+
+        # Empty string case
+        if len(input_string) == 0:
+            accepted = current_state in accepting_states
+            elapsed_ms = round((time.perf_counter() - start_time) * 1000, 3)
+            return SimulationResult(
+                automaton_id=automaton.id,
+                input_string=input_string,
+                accepted=accepted,
+                final_states=[current_state],
+                execution_time_ms=elapsed_ms,
+                steps=steps,
+            )
+
+        rejected_early = False
+        for idx, char in enumerate(input_string):
+            key = (current_state, char)
+            t_obj = trans_map.get(key)
+
+            if t_obj is not None:
+                next_state = t_obj.to_state
+                step_record = SimulationStep(
+                    step=idx + 1,
+                    current_states=[current_state],
+                    symbol_read=char,
+                    transition_taken=t_obj,
+                    next_states=[next_state],
+                )
+                steps.append(step_record)
+                current_state = next_state
+            else:
+                # No transition on symbol (either dead end or symbol not in alphabet)
+                step_record = SimulationStep(
+                    step=idx + 1,
+                    current_states=[current_state],
+                    symbol_read=char,
+                    transition_taken=None,
+                    next_states=[],
+                )
+                steps.append(step_record)
+                rejected_early = True
+                break
+
+        accepted = (not rejected_early) and (current_state in accepting_states)
+        final_states = [] if rejected_early else [current_state]
+        elapsed_ms = round((time.perf_counter() - start_time) * 1000, 3)
+
+        return SimulationResult(
+            automaton_id=automaton.id,
+            input_string=input_string,
+            accepted=accepted,
+            final_states=final_states,
+            execution_time_ms=elapsed_ms,
+            steps=steps,
+        )
+
+    def _simulate_nfa(self, automaton: Automaton, input_string: str) -> SimulationResult:
+        """Simulates candidate string execution on an NFA using epsilon closures."""
+        start_time = time.perf_counter()
+        accepting_states: Set[str] = {s.id for s in automaton.states if s.is_accepting}
+
+        # Build adjacency structures
+        eps_adj: Dict[str, Set[str]] = {s.id: set() for s in automaton.states}
+        sym_adj: Dict[Tuple[str, str], List[Transition]] = {}
+
+        for t in automaton.transitions:
+            if t.symbol in ("ε", ""):
+                eps_adj.setdefault(t.from_state, set()).add(t.to_state)
+            else:
+                sym_adj.setdefault((t.from_state, t.symbol), []).append(t)
+
+        def eps_closure(states: Set[str]) -> Set[str]:
+            closure = set(states)
+            stack = list(states)
+            while stack:
+                curr = stack.pop()
+                for nxt in eps_adj.get(curr, set()):
+                    if nxt not in closure:
+                        closure.add(nxt)
+                        stack.append(nxt)
+            return closure
+
+        current_set = eps_closure({automaton.start_state})
+        sorted_current = sorted(list(current_set), key=_state_sort_key)
+        steps: List[SimulationStep] = []
+
+        # Step 0: Initial state configuration
+        steps.append(
+            SimulationStep(
+                step=0,
+                current_states=sorted_current,
+                symbol_read=None,
+                transition_taken=None,
+                next_states=sorted_current,
+            )
+        )
+
+        # Empty string case
+        if len(input_string) == 0:
+            accepted = any(s in accepting_states for s in current_set)
+            elapsed_ms = round((time.perf_counter() - start_time) * 1000, 3)
+            return SimulationResult(
+                automaton_id=automaton.id,
+                input_string=input_string,
+                accepted=accepted,
+                final_states=sorted_current,
+                execution_time_ms=elapsed_ms,
+                steps=steps,
+            )
+
+        rejected_early = False
+        for idx, char in enumerate(input_string):
+            matching_transitions: List[Transition] = []
+            target_states: Set[str] = set()
+
+            for s in current_set:
+                matches = sym_adj.get((s, char), [])
+                if matches:
+                    matching_transitions.extend(matches)
+                    for m in matches:
+                        target_states.add(m.to_state)
+
+            if matching_transitions:
+                next_set = eps_closure(target_states)
+                sorted_next = sorted(list(next_set), key=_state_sort_key)
+                primary_transition = matching_transitions[0]
+
+                step_record = SimulationStep(
+                    step=idx + 1,
+                    current_states=sorted_current,
+                    symbol_read=char,
+                    transition_taken=primary_transition,
+                    next_states=sorted_next,
+                )
+                steps.append(step_record)
+                current_set = next_set
+                sorted_current = sorted_next
+
+                if not current_set:
+                    rejected_early = True
+                    break
+            else:
+                # No transition possible on character
+                step_record = SimulationStep(
+                    step=idx + 1,
+                    current_states=sorted_current,
+                    symbol_read=char,
+                    transition_taken=None,
+                    next_states=[],
+                )
+                steps.append(step_record)
+                current_set = set()
+                sorted_current = []
+                rejected_early = True
+                break
+
+        accepted = (not rejected_early) and any(s in accepting_states for s in current_set)
+        final_states = sorted_current
+        elapsed_ms = round((time.perf_counter() - start_time) * 1000, 3)
+
+        return SimulationResult(
+            automaton_id=automaton.id,
+            input_string=input_string,
+            accepted=accepted,
+            final_states=final_states,
+            execution_time_ms=elapsed_ms,
+            steps=steps,
         )
