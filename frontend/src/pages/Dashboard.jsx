@@ -23,6 +23,7 @@ export default function Dashboard() {
   const [showHeatmap, setShowHeatmap] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
+  const [syntaxError, setSyntaxError] = useState(null);
   const [isLiveMode, setIsLiveMode] = useState(false);
 
   // Core processing pipeline: parse -> simulate -> explain
@@ -34,6 +35,7 @@ export default function Dashboard() {
 
       setLoading(true);
       setErrorMessage(null);
+      setSyntaxError(null);
 
       try {
         // 1. Parse regex to fetch NFA, DFA, Minimized DFA
@@ -61,9 +63,13 @@ export default function Dashboard() {
         setIsLiveMode(allLive);
       } catch (err) {
         console.error('Pipeline execution error:', err);
-        setErrorMessage(
-          `Pipeline error: ${err.message}. Showing safe fallback preview.`
-        );
+        if (err.isSyntaxError) {
+          setSyntaxError(err.message);
+        } else {
+          setErrorMessage(
+            `Pipeline error: ${err.message}. Showing safe fallback preview.`
+          );
+        }
         setIsLiveMode(false);
       } finally {
         setLoading(false);
@@ -211,6 +217,8 @@ export default function Dashboard() {
           setInputString={setInputString}
           onProcess={() => handleProcess()}
           loading={loading}
+          syntaxError={syntaxError}
+          clearSyntaxError={() => setSyntaxError(null)}
         />
 
         {/* Step-by-Step String Execution Stepper */}

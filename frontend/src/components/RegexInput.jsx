@@ -14,26 +14,59 @@ export default function RegexInput({
   setInputString,
   onProcess,
   loading,
+  syntaxError,
+  clearSyntaxError,
 }) {
   const handleSelectPreset = (preset) => {
+    if (clearSyntaxError) clearSyntaxError();
     setRegex(preset.label);
     setInputString(preset.string);
+  };
+
+  const handleRegexChange = (e) => {
+    if (clearSyntaxError) clearSyntaxError();
+    setRegex(e.target.value);
   };
 
   return (
     <div className="glass-panel control-bar" id="regex-control-panel">
       <div className="input-row">
         {/* Regex Input Field */}
-        <div className="input-group">
-          <span className="input-icon">/</span>
-          <input
-            id="regex-input-field"
-            type="text"
-            className="input-field"
-            placeholder="Enter Regular Expression (e.g. (a|b)*abb)..."
-            value={regex}
-            onChange={(e) => setRegex(e.target.value)}
-          />
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+          <div className="input-group">
+            <span className="input-icon">/</span>
+            <input
+              id="regex-input-field"
+              type="text"
+              className={`input-field ${syntaxError ? 'input-error' : ''}`}
+              style={syntaxError ? { borderColor: 'rgba(239, 68, 68, 0.6)' } : {}}
+              placeholder="Enter Regular Expression (e.g. (a|b)*abb)..."
+              value={regex}
+              onChange={handleRegexChange}
+            />
+          </div>
+
+          {/* Inline Syntax Error Alert */}
+          {syntaxError && (
+            <div
+              id="regex-inline-syntax-error"
+              style={{
+                marginTop: '0.4rem',
+                padding: '0.4rem 0.75rem',
+                background: 'rgba(239, 68, 68, 0.12)',
+                border: '1px solid rgba(239, 68, 68, 0.35)',
+                borderRadius: 'var(--radius-sm)',
+                color: '#fca5a5',
+                fontSize: '0.8rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+              }}
+            >
+              <span>⚠️</span>
+              <span style={{ fontFamily: 'var(--font-mono)' }}>{syntaxError}</span>
+            </div>
+          )}
         </div>
 
         {/* Candidate String Input */}
