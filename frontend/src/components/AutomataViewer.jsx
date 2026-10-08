@@ -13,15 +13,18 @@ export default function AutomataViewer({
   const states = automaton?.states || [];
   const transitions = automaton?.transitions || [];
 
-  // Calculate layout coordinates for states in SVG canvas (650 x 360)
+  // Calculate layout coordinates for states in SVG canvas (auto-scales for large automata)
   const layout = useMemo(() => {
-    const width = 680;
-    const height = 360;
-    const padding = 70;
     const n = states.length;
+    // Scale canvas dynamically for large automata so nodes don't overlap
+    const width = Math.max(680, n * 55);
+    const height = Math.max(360, n > 8 ? 440 : 360);
+    const padding = 70;
     const coords = {};
 
-    if (n === 0) return { coords, width, height };
+    if (n === 0) return { coords, width, height, nodeRadius: 21 };
+
+    const nodeRadius = n > 12 ? 18 : 21;
 
     if (n <= 4) {
       // Horizontal linear layout with vertical jitter
@@ -33,7 +36,7 @@ export default function AutomataViewer({
         };
       });
     } else {
-      // Circular / elliptical layout
+      // Circular / elliptical layout with ample radius
       const cx = width / 2;
       const cy = height / 2;
       const rx = (width - 2 * padding) / 2;
@@ -47,7 +50,7 @@ export default function AutomataViewer({
       });
     }
 
-    return { coords, width, height };
+    return { coords, width, height, nodeRadius };
   }, [states]);
 
   // Node importance lookup
@@ -120,7 +123,12 @@ export default function AutomataViewer({
       <div className="svg-canvas-wrapper" id="svg-canvas-container">
         <svg
           viewBox={`0 0 ${layout.width} ${layout.height}`}
-          style={{ width: '100%', height: '100%', maxHeight: '420px' }}
+          style={{
+            width: layout.width > 680 ? `${layout.width}px` : '100%',
+            height: '100%',
+            minHeight: '360px',
+            maxHeight: layout.height > 360 ? '460px' : '420px',
+          }}
         >
           <defs>
             {/* Arrow marker for standard directed edges */}
@@ -300,7 +308,7 @@ export default function AutomataViewer({
                 {/* Outer accepting ring if accepting */}
                 {isAccepting && (
                   <circle
-                    r="26"
+                    r={layout.nodeRadius + 5}
                     fill="none"
                     stroke={nodeColor}
                     strokeWidth="1.8"
@@ -310,7 +318,7 @@ export default function AutomataViewer({
 
                 {/* Main state circle */}
                 <circle
-                  r="21"
+                  r={layout.nodeRadius}
                   fill="rgba(15, 23, 42, 0.95)"
                   stroke={nodeColor}
                   strokeWidth={isActive ? '4' : '2'}
