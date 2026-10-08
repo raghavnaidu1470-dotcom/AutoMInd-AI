@@ -339,7 +339,7 @@ body {
   border-radius: var(--radius-md);
   border: 1px solid var(--border-subtle);
   position: relative;
-  overflow: hidden;
+  overflow: auto;
   display: flex;
   align-items: center;
   justify-content: center;

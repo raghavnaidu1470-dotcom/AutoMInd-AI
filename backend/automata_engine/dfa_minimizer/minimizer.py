@@ -1,380 +1,266 @@
 """
-DFA Minimizer
-=============
-Minimizes a DFA using partition refinement.
+DFA Minimization (Hopcroft's Algorithm)
+=======================================
+Owned by: Member A (Automata Theory Engine)
 
-The implementation:
-    1. Removes unreachable states.
-    2. Separates accepting and non-accepting states.
-    3. Refines partitions based on transition behavior.
-    4. Merges equivalent states.
-    5. Rebuilds the minimized DFA.
+This module implements DFA state minimization using Hopcroft's algorithm.
+Given an arbitrary DFA, it computes the unique minimal DFA (up to isomorphism)
+recognizing the exact same formal language.
+
+Algorithmic Steps:
+------------------
+1. Reachability Filter: Remove unreachable states from start_state using BFS.
+2. Initial Partition: P = { F, Q \\ F } (accepting and non-accepting states).
+3. Hopcroft's Refinement: Iteratively split partition blocks using inverse transitions.
+4. Canonical State Synthesis: Synthesize new states and order them canonically
+   via BFS discovery from the minimal start state, producing deterministic state
+   names (q0, q1, ...) and stable transition tables.
 """
 
-from typing import List, Set, Dict, FrozenSet
+from typing import List, Set, Dict, FrozenSet, Tuple, Optional
+import uuid
 
-from ..models import Automaton, State, Transition
+from ..models import Automaton, State, Transition, AutomatonMetadata
 
 
 class DFAMinimizer:
     """
-    Minimizes deterministic finite automata using partition refinement.
+    Minimizes a DFA using Hopcroft's algorithm with deterministic BFS state ordering.
     """
 
     def __init__(self):
         pass
 
-    # ------------------------------------------------------------------
-    # REACHABILITY
-    # ------------------------------------------------------------------
-
-    def _get_reachable_states(
-        self,
-        dfa: Automaton,
-    ) -> Set[str]:
-        """
-        Find all states reachable from the DFA start state.
-        """
-
-        reachable = {dfa.start_state}
-        stack = [dfa.start_state]
-
-        while stack:
-            current = stack.pop()
-
-            for transition in dfa.transitions:
-                if transition.from_state == current:
-                    target = transition.to_state
-
-                    if target not in reachable:
-                        reachable.add(target)
-                        stack.append(target)
-
-        return reachable
-
-    # ------------------------------------------------------------------
-    # TRANSITION LOOKUP
-    # ------------------------------------------------------------------
-
-    def _get_target(
-        self,
-        dfa: Automaton,
-        state: str,
-        symbol: str,
-    ):
-        """
-        Return the target state for a DFA transition.
-
-        Returns None if no transition exists.
-        """
-
-        for transition in dfa.transitions:
-            if (
-                transition.from_state == state
-                and transition.symbol == symbol
-            ):
-                return transition.to_state
-
-        return None
-
-    # ------------------------------------------------------------------
-    # PARTITION REFINEMENT
-    # ------------------------------------------------------------------
-
-    def _refine_partitions(
-        self,
-        dfa: Automaton,
-        partitions: List[Set[str]],
-        alphabet: List[str],
-    ) -> List[Set[str]]:
-        """
-        Refine partitions until equivalent states can no longer
-        be separated.
-        """
-
-        changed = True
-
-        while changed:
-            changed = False
-
-            # Map each state to the partition containing it.
-            state_to_partition = {}
-
-            for index, partition in enumerate(partitions):
-                for state in partition:
-                    state_to_partition[state] = index
-
-            new_partitions = []
-
-            for partition in partitions:
-
-                groups: Dict[tuple, Set[str]] = {}
-
-                for state in partition:
-
-                    signature = []
-
-                    for symbol in alphabet:
-                        target = self._get_target(
-                            dfa,
-                            state,
-                            symbol,
-                        )
-
-                        if target is None:
-                            # Missing transitions go to an implicit
-                            # dead/trap behavior.
-                            signature.append(None)
-                        else:
-                            signature.append(
-                                state_to_partition[target]
-                            )
-
-                    signature = tuple(signature)
-
-                    if signature not in groups:
-                        groups[signature] = set()
-
-                    groups[signature].add(state)
-
-                # If one old partition became multiple groups,
-                # refinement occurred.
-                if len(groups) > 1:
-                    changed = True
-
-                new_partitions.extend(groups.values())
-
-            partitions = new_partitions
-
-        return partitions
-
-    # ------------------------------------------------------------------
-    # MINIMIZATION
-    # ------------------------------------------------------------------
-
     def minimize(self, dfa: Automaton) -> Automaton:
         """
-        Minimize a DFA.
+        Executes DFA minimization on the input DFA.
 
         Args:
-            dfa: DFA to minimize.
+            dfa (Automaton): The unminimized or candidate DFA.
 
         Returns:
-            Minimized DFA.
+            Automaton: Minimized DFA conforming to docs/json_schema.md.
 
         Raises:
-            ValueError: If the automaton is not a DFA.
+            ValueError: If input is not a DFA.
         """
+        if dfa.type not in ("DFA", "MINIMIZED_DFA"):
+            raise ValueError(f"Expected DFA for minimization, got '{dfa.type}'.")
 
-        if dfa.type not in {"DFA", "MINIMIZED_DFA"}:
-            raise ValueError(
-                "DFAMinimizer.minimize() expects an automaton "
-                "of type 'DFA' or 'MINIMIZED_DFA'."
-            )
+        alphabet = sorted(list(set(dfa.alphabet)))
+        state_dict: Dict[str, State] = {s.id: s for s in dfa.states}
 
-        # --------------------------------------------------------------
-        # 1. Remove unreachable states.
-        # --------------------------------------------------------------
+        # 1. Reachability Filter: BFS from dfa.start_state
+        reachable: Set[str] = set()
+        queue: List[str] = [dfa.start_state]
+        visited: Set[str] = {dfa.start_state}
 
-        reachable = self._get_reachable_states(dfa)
+        # Transition lookups for reachable analysis
+        adj: Dict[str, Dict[str, str]] = {s.id: {} for s in dfa.states}
+        for t in dfa.transitions:
+            adj.setdefault(t.from_state, {})[t.symbol] = t.to_state
 
-        reachable_states = [
-            state
-            for state in dfa.states
-            if state.id in reachable
-        ]
+        while queue:
+            curr = queue.pop(0)
+            reachable.add(curr)
+            for sym, nxt in adj.get(curr, {}).items():
+                if nxt in state_dict and nxt not in visited:
+                    visited.add(nxt)
+                    queue.append(nxt)
 
-        reachable_transitions = [
-            transition
-            for transition in dfa.transitions
-            if (
-                transition.from_state in reachable
-                and transition.to_state in reachable
-            )
-        ]
+        if not reachable:
+            # Degenerate case: no reachable states, keep start state
+            reachable = {dfa.start_state}
 
-        accepting = {
-            state.id
-            for state in reachable_states
-            if state.is_accepting
-        }
+        # 2. Build complete transition and inverse transition tables over reachable states
+        delta: Dict[Tuple[str, str], str] = {}
+        delta_inv: Dict[Tuple[str, str], Set[str]] = {}
 
-        non_accepting = {
-            state.id
-            for state in reachable_states
-            if not state.is_accepting
-        }
+        for t in dfa.transitions:
+            if t.from_state in reachable and t.to_state in reachable:
+                delta[(t.from_state, t.symbol)] = t.to_state
+                delta_inv.setdefault((t.to_state, t.symbol), set()).add(t.from_state)
 
-        alphabet = list(dfa.alphabet)
+        # 3. Initial Partition P and Worklist W
+        accepting: Set[str] = {sid for sid in reachable if state_dict[sid].is_accepting}
+        non_accepting: Set[str] = reachable - accepting
 
-        # --------------------------------------------------------------
-        # 2. Initial partition:
-        #
-        # accepting vs non-accepting.
-        # --------------------------------------------------------------
-
-        partitions: List[Set[str]] = []
-
+        partition: List[FrozenSet[str]] = []
         if accepting:
-            partitions.append(accepting)
-
+            partition.append(frozenset(accepting))
         if non_accepting:
-            partitions.append(non_accepting)
+            partition.append(frozenset(non_accepting))
 
-        # --------------------------------------------------------------
-        # 3. Refine partitions.
-        # --------------------------------------------------------------
+        if not partition:
+            partition = [frozenset(reachable)]
 
-        reachable_dfa = Automaton(
-            id=dfa.id,
-            name=dfa.name,
-            type="DFA",
-            alphabet=alphabet,
-            start_state=dfa.start_state,
-            states=reachable_states,
-            transitions=reachable_transitions,
-            metadata=dfa.metadata,
-        )
+        # Worklist: initialize with smaller of the two sets if both exist
+        worklist: List[FrozenSet[str]] = []
+        if len(partition) == 2:
+            smaller = min(partition, key=len)
+            worklist.append(smaller)
+        else:
+            worklist.append(partition[0])
 
-        partitions = self._refine_partitions(
-            reachable_dfa,
-            partitions,
-            alphabet,
-        )
+        # 4. Hopcroft's Partition Refinement Loop
+        while worklist:
+            A = worklist.pop(0)
 
-        # --------------------------------------------------------------
-        # 4. Give each equivalence class a new state ID.
-        # --------------------------------------------------------------
+            for c in alphabet:
+                # X = { s in reachable | delta(s, c) in A }
+                X: Set[str] = set()
+                for target_state in A:
+                    X.update(delta_inv.get((target_state, c), set()))
 
-        state_to_new_id: Dict[str, str] = {}
+                if not X:
+                    continue
 
-        # Put the partition containing the original start state first.
-        start_partition = None
+                X_frozen = frozenset(X)
+                new_partition: List[FrozenSet[str]] = []
 
-        for partition in partitions:
-            if dfa.start_state in partition:
-                start_partition = partition
+                for Y in partition:
+                    Y1 = Y & X_frozen
+                    Y2 = Y - X_frozen
+
+                    if Y1 and Y2:
+                        new_partition.append(Y1)
+                        new_partition.append(Y2)
+
+                        if Y in worklist:
+                            worklist.remove(Y)
+                            worklist.append(Y1)
+                            worklist.append(Y2)
+                        else:
+                            if len(Y1) <= len(Y2):
+                                worklist.append(Y1)
+                            else:
+                                worklist.append(Y2)
+                    else:
+                        new_partition.append(Y)
+
+                partition = new_partition
+
+        # 5. Canonical State Synthesis
+        # Find start block containing dfa.start_state
+        start_block: Optional[FrozenSet[str]] = None
+        for block in partition:
+            if dfa.start_state in block:
+                start_block = block
                 break
 
-        ordered_partitions = []
+        if start_block is None:
+            start_block = partition[0]
 
-        if start_partition is not None:
-            ordered_partitions.append(start_partition)
+        # Order blocks using BFS starting from start_block for stable deterministic naming
+        ordered_blocks: List[FrozenSet[str]] = [start_block]
+        block_queue: List[FrozenSet[str]] = [start_block]
+        discovered_blocks_set: Set[FrozenSet[str]] = {start_block}
 
-        for partition in partitions:
-            if partition is not start_partition:
-                ordered_partitions.append(partition)
+        # Helper to find block containing a given state
+        def find_block(state_id: str) -> FrozenSet[str]:
+            for b in partition:
+                if state_id in b:
+                    return b
+            return start_block
 
-        for index, partition in enumerate(ordered_partitions):
-            new_id = f"q{index}"
+        while block_queue:
+            curr_b = block_queue.pop(0)
+            rep = next(iter(curr_b))
 
-            for old_state in partition:
-                state_to_new_id[old_state] = new_id
+            for c in alphabet:
+                target_state = delta.get((rep, c))
+                if target_state:
+                    target_b = find_block(target_state)
+                    if target_b not in discovered_blocks_set:
+                        discovered_blocks_set.add(target_b)
+                        ordered_blocks.append(target_b)
+                        block_queue.append(target_b)
 
-        # --------------------------------------------------------------
-        # 5. Build minimized states.
-        # --------------------------------------------------------------
+        # Include any remaining partition blocks (if any disconnected components exist)
+        for b in partition:
+            if b not in discovered_blocks_set:
+                ordered_blocks.append(b)
 
-        minimized_states: List[State] = []
+        # Map each block to deterministic state id: q0, q1, ...
+        block_to_id: Dict[FrozenSet[str], str] = {
+            b: f"q{idx}" for idx, b in enumerate(ordered_blocks)
+        }
 
-        for index, partition in enumerate(ordered_partitions):
+        # 6. Build Minimized States
+        states: List[State] = []
+        for b in ordered_blocks:
+            sid = block_to_id[b]
+            is_start = (b == start_block)
+            is_accepting = any(state_dict[orig].is_accepting for orig in b)
+            merged_nfa_subsets: List[str] = []
+            for orig in b:
+                orig_meta = state_dict[orig].metadata or {}
+                merged_nfa_subsets.extend(orig_meta.get("nfa_subset", [orig]))
 
-            new_id = f"q{index}"
+            # Sort and deduplicate metadata subsets
+            def _sub_sort_key(s: str):
+                if s.startswith("q") and s[1:].isdigit():
+                    return int(s[1:])
+                return s
 
-            is_accepting = any(
-                state in accepting
-                for state in partition
-            )
+            clean_subsets = sorted(list(set(merged_nfa_subsets)), key=_sub_sort_key)
 
-            minimized_states.append(
+            states.append(
                 State(
-                    id=new_id,
-                    label=new_id,
-                    is_start=(
-                        dfa.start_state in partition
-                    ),
+                    id=sid,
+                    label=sid,
+                    is_start=is_start,
                     is_accepting=is_accepting,
-                    metadata={
-                        "merged_states": sorted(partition)
-                    },
+                    metadata={"nfa_subset": clean_subsets, "merged_states": sorted(list(b), key=_sub_sort_key)},
                 )
             )
 
-        # --------------------------------------------------------------
-        # 6. Rebuild transitions.
-        # --------------------------------------------------------------
+        # 7. Build Minimized Transitions
+        min_transitions_dict: Dict[Tuple[str, str], str] = {}
+        for b in ordered_blocks:
+            from_id = block_to_id[b]
+            rep = next(iter(b))
+            for c in alphabet:
+                target_state = delta.get((rep, c))
+                if target_state:
+                    target_b = find_block(target_state)
+                    to_id = block_to_id[target_b]
+                    min_transitions_dict[(from_id, c)] = to_id
 
-        minimized_transitions: List[Transition] = []
+        def _trans_sort_key(item: Tuple[Tuple[str, str], str]):
+            (u, sym), v = item
+            u_idx = int(u[1:]) if u.startswith("q") and u[1:].isdigit() else u
+            v_idx = int(v[1:]) if v.startswith("q") and v[1:].isdigit() else v
+            return (u_idx, sym, v_idx)
 
-        # Keep track of transitions already added.
-        added = set()
+        sorted_transitions = sorted(min_transitions_dict.items(), key=_trans_sort_key)
+        transitions: List[Transition] = [
+            Transition(
+                id=f"mt{idx}",
+                from_state=u,
+                to_state=v,
+                symbol=sym,
+            )
+            for idx, ((u, sym), v) in enumerate(sorted_transitions)
+        ]
 
-        for partition in ordered_partitions:
+        pattern_str = dfa.metadata.regex if dfa.metadata else ""
 
-            representative = next(iter(partition))
-
-            from_state = state_to_new_id[representative]
-
-            for symbol in alphabet:
-
-                target = self._get_target(
-                    reachable_dfa,
-                    representative,
-                    symbol,
-                )
-
-                if target is None:
-                    continue
-
-                to_state = state_to_new_id[target]
-
-                transition_key = (
-                    from_state,
-                    to_state,
-                    symbol,
-                )
-
-                if transition_key in added:
-                    continue
-
-                added.add(transition_key)
-
-                minimized_transitions.append(
-                    Transition(
-                        id=(
-                            f"{from_state}_"
-                            f"{symbol}_"
-                            f"{to_state}"
-                        ),
-                        from_state=from_state,
-                        to_state=to_state,
-                        symbol=symbol,
-                    )
-                )
-
-        # --------------------------------------------------------------
-        # 7. Build final minimized DFA.
-        # --------------------------------------------------------------
+        metadata = AutomatonMetadata(
+            regex=pattern_str,
+            state_count=len(states),
+            transition_count=len(transitions),
+            is_minimized=True,
+            description="Constructed using Hopcroft's DFA Minimization Algorithm",
+        )
 
         return Automaton(
-            id="minimized_dfa",
-            name="Minimized DFA",
+            id=f"min_dfa_{uuid.uuid4().hex[:8]}",
+            name=f"Minimized DFA for {pattern_str}" if pattern_str else "Minimized DFA",
             type="MINIMIZED_DFA",
             alphabet=alphabet,
-            start_state=state_to_new_id[dfa.start_state],
-            states=minimized_states,
-            transitions=minimized_transitions,
-            metadata={
-                "regex": (
-                    dfa.metadata.regex
-                    if dfa.metadata is not None
-                    else None
-                ),
-                "state_count": len(minimized_states),
-                "transition_count": len(minimized_transitions),
-                "is_minimized": True,
-                "description": (
-                    "DFA minimized using partition refinement."
-                ),
-            },
+            start_state="q0",
+            states=states,
+            transitions=transitions,
+            metadata=metadata,
         )

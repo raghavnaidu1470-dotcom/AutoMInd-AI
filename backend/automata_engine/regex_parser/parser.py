@@ -1,46 +1,57 @@
+r"""
+Regex Parser & AST Construction
+================================
+Owned by: Member A (Automata Theory Engine)
+
+This module receives a raw regular expression string and transforms it into
+an Abstract Syntax Tree (AST) using a recursive-descent parser.
+
+Precedence (lowest to highest):
+  1. Alternation / Union `|`
+  2. Concatenation (implicit, e.g. 'ab' -> 'a . b')
+  3. Repetition / Unary Postfix operators: Kleene star `*`, Plus `+`, Optional `?`
+  4. Atoms: Literals, Epsilon (`ε` or `()`), Escapes `\x`, Grouping `(...)`
 """
-Regex Parser
-============
-Converts a regular expression into an Abstract Syntax Tree (AST).
-
-Supported operators:
-    |   Union
-    *   Kleene Star
-    +   One or more
-    ?   Zero or one
-    ()  Grouping
-    ε   Epsilon
-
-Implicit concatenation is supported.
-
-Examples:
-    ab      -> a followed by b
-    a|b     -> a or b
-    a*      -> zero or more a's
-    a+      -> one or more a's
-    a?      -> zero or one a
-    (ab)*   -> zero or more repetitions of ab
-"""
-
 
 from enum import Enum
 from typing import Optional, List
 
 
-class RegexNodeType(str, Enum):
-    """Types of nodes that can appear in the regex AST."""
+class RegexSyntaxError(ValueError):
+    """
+    Exception raised when a regular expression contains a syntax error.
+    Includes the specific error message and character position.
+    """
 
-    LITERAL = "LITERAL"
-    EPSILON = "EPSILON"
-    CONCAT = "CONCAT"
-    UNION = "UNION"
-    STAR = "STAR"
-    PLUS = "PLUS"
-    QUESTION = "QUESTION"
+    def __init__(self, message: str, position: int = -1):
+        self.message = message
+        self.position = position
+        pos_str = f" at position {position}" if position >= 0 else ""
+        super().__init__(f"{message}{pos_str}")
+
+
+class RegexNodeType(str, Enum):
+    """Types of nodes that can appear in a Regular Expression AST."""
+    LITERAL = "LITERAL"              # Single character (e.g. 'a')
+    EPSILON = "EPSILON"              # Empty string 'ε'
+    CONCAT = "CONCAT"                # Binary concatenation (left . right)
+    UNION = "UNION"                  # Binary alternation (left | right)
+    STAR = "STAR"                    # Unary Kleene star (child*)
+    PLUS = "PLUS"                    # Unary positive closure (child+)
+    QUESTION = "QUESTION"            # Optional (child?)
 
 
 class RegexNode:
-    """A node in the regular-expression Abstract Syntax Tree."""
+    """
+    Node in the Regular Expression AST.
+
+    Attributes:
+        type (RegexNodeType): The operation or terminal type.
+        value (Optional[str]): Character value if type == LITERAL.
+        left (Optional[RegexNode]): Left child node for binary ops.
+        right (Optional[RegexNode]): Right child node for binary ops.
+        child (Optional[RegexNode]): Child node for unary ops (*, +, ?).
+    """
 
     def __init__(
         self,
@@ -50,434 +61,209 @@ class RegexNode:
         right: Optional["RegexNode"] = None,
         child: Optional["RegexNode"] = None,
     ):
-        self.node_type = node_type
+        self.type = node_type
         self.value = value
         self.left = left
         self.right = right
         self.child = child
 
-    def __repr__(self):
-        if self.node_type == RegexNodeType.LITERAL:
-            return f"RegexNode(LITERAL, value={self.value!r})"
+    def __repr__(self) -> str:
+        if self.type == RegexNodeType.LITERAL:
+            return f"Literal({self.value!r})"
+        if self.type == RegexNodeType.EPSILON:
+            return "Epsilon()"
+        if self.type == RegexNodeType.STAR:
+            return f"Star({self.child!r})"
+        if self.type == RegexNodeType.PLUS:
+            return f"Plus({self.child!r})"
+        if self.type == RegexNodeType.QUESTION:
+            return f"Question({self.child!r})"
+        if self.type == RegexNodeType.CONCAT:
+            return f"Concat({self.left!r}, {self.right!r})"
+        if self.type == RegexNodeType.UNION:
+            return f"Union({self.left!r}, {self.right!r})"
+        return f"Node({self.type.value})"
 
-        if self.node_type == RegexNodeType.EPSILON:
-            return "RegexNode(EPSILON)"
-
-        if self.node_type in {
-            RegexNodeType.STAR,
-            RegexNodeType.PLUS,
-            RegexNodeType.QUESTION,
-        }:
-            return f"RegexNode({self.node_type.value}, child={self.child!r})"
-
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, RegexNode):
+            return False
         return (
-            f"RegexNode({self.node_type.value}, "
-            f"left={self.left!r}, right={self.right!r})"
+            self.type == other.type
+            and self.value == other.value
+            and self.left == other.left
+            and self.right == other.right
+            and self.child == other.child
         )
 
 
 class RegexParser:
     """
-    Parses a regular expression and produces an AST.
-
-    Supported syntax:
-
-        a       literal
-        ε       epsilon
-        a|b     union
-        ab      concatenation
-        a*      Kleene star
-        a+      one-or-more
-        a?      optional
-        (ab)    grouping
+    Recursive-descent parser for regular expressions producing a RegexNode AST.
     """
 
-    # Operator precedence.
-    # Higher number = higher precedence.
-    PRECEDENCE = {
-        "|": 1,
-        ".": 2,
-        "*": 3,
-        "+": 3,
-        "?": 3,
-    }
-
-    BINARY_OPERATORS = {"|", "."}
-    UNARY_OPERATORS = {"*", "+", "?"}
-
     def __init__(self):
-        pass
+        self._pattern: str = ""
+        self._pos: int = 0
+        self._length: int = 0
 
     def parse(self, pattern: str) -> RegexNode:
         """
-        Parse a regular expression into an AST.
+        Parses a regular expression pattern into an AST.
 
         Args:
-            pattern: Regular-expression string.
+            pattern (str): The regular expression pattern (e.g., "(a|b)*abb").
 
         Returns:
-            RegexNode: Root node of the AST.
+            RegexNode: Root of the parsed AST.
 
         Raises:
-            SyntaxError: If the regular expression is invalid.
-            ValueError: If the pattern is empty.
+            RegexSyntaxError: If the pattern is malformed.
         """
+        if pattern is None or len(pattern) == 0:
+            raise RegexSyntaxError("Regex pattern cannot be empty.", 0)
 
-        if pattern is None:
-            raise ValueError("Regex pattern cannot be None.")
+        self._pattern = pattern
+        self._pos = 0
+        self._length = len(pattern)
 
-        pattern = pattern.strip()
+        root = self._parse_expression()
 
-        if not pattern:
-            raise ValueError("Regex pattern cannot be empty.")
+        if self._pos < self._length:
+            char = self._peek()
+            if char == ")":
+                raise RegexSyntaxError("Unexpected closing parenthesis ')'", self._pos)
+            raise RegexSyntaxError(f"Unexpected character '{char}'", self._pos)
 
-        # Step 1:
-        # Insert explicit concatenation operators.
-        tokens = self._tokenize(pattern)
-        tokens = self._insert_concatenation(tokens)
+        return root
 
-        # Step 2:
-        # Convert infix expression to postfix.
-        postfix = self._to_postfix(tokens)
+    def _peek(self) -> Optional[str]:
+        if self._pos < self._length:
+            return self._pattern[self._pos]
+        return None
 
-        # Step 3:
-        # Build AST from postfix expression.
-        return self._build_ast(postfix)
+    def _advance(self) -> str:
+        ch = self._pattern[self._pos]
+        self._pos += 1
+        return ch
 
-    # ------------------------------------------------------------------
-    # TOKENIZATION
-    # ------------------------------------------------------------------
-
-    def _tokenize(self, pattern: str) -> List[str]:
+    def _parse_expression(self) -> RegexNode:
         """
-        Convert the input regex into individual tokens.
-
-        Characters used as operators are kept as separate tokens.
+        expression -> term ('|' term)*
         """
+        if self._pos >= self._length:
+            raise RegexSyntaxError("Unexpected end of pattern", self._pos)
 
-        tokens = []
+        if self._peek() == "|":
+            raise RegexSyntaxError("Empty alternation branch before '|'", self._pos)
 
-        for char in pattern:
-            if char.isspace():
-                continue
+        left = self._parse_term()
 
-            if char in {"(", ")", "|", "*", "+", "?", "ε"}:
-                tokens.append(char)
-            else:
-                # Every other character is treated as a literal.
-                tokens.append(char)
+        while self._peek() == "|":
+            pipe_pos = self._pos
+            self._advance()  # consume '|'
 
-        return tokens
+            if self._pos >= self._length:
+                raise RegexSyntaxError("Empty alternation branch after '|'", pipe_pos)
+            if self._peek() == "|":
+                raise RegexSyntaxError("Empty alternation branch between '||'", pipe_pos)
+            if self._peek() == ")":
+                raise RegexSyntaxError("Empty alternation branch before ')'", pipe_pos)
 
-    # ------------------------------------------------------------------
-    # CONCATENATION
-    # ------------------------------------------------------------------
+            right = self._parse_term()
+            left = RegexNode(RegexNodeType.UNION, left=left, right=right)
 
-    def _is_operand_end(self, token: str) -> bool:
+        return left
+
+    def _parse_term(self) -> RegexNode:
         """
-        Returns True if a token can appear at the end of an expression
-        or sub-expression.
+        term -> factor+
+        Implicit concatenation of factors.
         """
+        factors: List[RegexNode] = []
 
-        return (
-            token == ")"
-            or token == "ε"
-            or token not in {"(", "|", "*", "+", "?"}
-        )
+        while self._pos < self._length and self._peek() not in ("|", ")"):
+            factor = self._parse_factor()
+            factors.append(factor)
 
-    def _is_operand_start(self, token: str) -> bool:
-        """
-        Returns True if a token can begin an expression or sub-expression.
-        """
+        if not factors:
+            raise RegexSyntaxError("Expected expression or factor", self._pos)
 
-        return (
-            token == "("
-            or token == "ε"
-            or token not in {")", "|", "*", "+", "?"}
-        )
-
-    def _insert_concatenation(self, tokens: List[str]) -> List[str]:
-        """
-        Insert explicit '.' operators wherever concatenation is implied.
-
-        Example:
-
-            ab      -> a . b
-            a(b|c)  -> a . (b|c)
-            (a|b)c  -> (a|b) . c
-            a*b     -> a * . b
-        """
-
-        result = []
-
-        for i, current in enumerate(tokens):
-            result.append(current)
-
-            if i == len(tokens) - 1:
-                continue
-
-            next_token = tokens[i + 1]
-
-            if (
-                self._is_operand_end(current)
-                or current in self.UNARY_OPERATORS
-            ) and self._is_operand_start(next_token):
-                result.append(".")
-
+        # Fold factors with CONCAT left-associatively
+        result = factors[0]
+        for next_factor in factors[1:]:
+            result = RegexNode(RegexNodeType.CONCAT, left=result, right=next_factor)
         return result
 
-    # ------------------------------------------------------------------
-    # INFIX -> POSTFIX
-    # ------------------------------------------------------------------
-
-    def _to_postfix(self, tokens: List[str]) -> List[str]:
+    def _parse_factor(self) -> RegexNode:
         """
-        Convert the tokenized infix regex into postfix notation
-        using the Shunting-yard algorithm.
+        factor -> atom ('*' | '+' | '?')?
         """
+        atom = self._parse_atom()
 
-        output = []
-        operator_stack = []
+        if self._pos < self._length and self._peek() in ("*", "+", "?"):
+            op = self._advance()
+            if self._pos < self._length and self._peek() in ("*", "+", "?"):
+                next_op = self._peek()
+                raise RegexSyntaxError(f"Multiple repeat operators '{op}' and '{next_op}'", self._pos)
+            if op == "*":
+                atom = RegexNode(RegexNodeType.STAR, child=atom)
+            elif op == "+":
+                atom = RegexNode(RegexNodeType.PLUS, child=atom)
+            elif op == "?":
+                atom = RegexNode(RegexNodeType.QUESTION, child=atom)
 
-        previous = None
+        return atom
 
-        for token in tokens:
-
-            # ----------------------------------------------------------
-            # Operand
-            # ----------------------------------------------------------
-            if self._is_literal(token) or token == "ε":
-                output.append(token)
-
-            # ----------------------------------------------------------
-            # Opening parenthesis
-            # ----------------------------------------------------------
-            elif token == "(":
-                operator_stack.append(token)
-
-            # ----------------------------------------------------------
-            # Closing parenthesis
-            # ----------------------------------------------------------
-            elif token == ")":
-
-                if previous in {"|", "."}:
-                    raise SyntaxError(
-                        "Invalid regex: operator cannot appear "
-                        "immediately before ')'."
-                    )
-
-                found_opening = False
-
-                while operator_stack:
-                    operator = operator_stack.pop()
-
-                    if operator == "(":
-                        found_opening = True
-                        break
-
-                    output.append(operator)
-
-                if not found_opening:
-                    raise SyntaxError(
-                        "Invalid regex: unmatched closing parenthesis ')'."
-                    )
-
-            # ----------------------------------------------------------
-            # Unary operators
-            # ----------------------------------------------------------
-            elif token in self.UNARY_OPERATORS:
-
-                if previous is None:
-                    raise SyntaxError(
-                        f"Invalid regex: operator '{token}' "
-                        "cannot appear at the beginning."
-                    )
-
-                if previous in {"|", ".", "("}:
-                    raise SyntaxError(
-                        f"Invalid regex: operator '{token}' "
-                        "has no operand."
-                    )
-
-                # Unary operators directly apply to the previous operand.
-                output.append(token)
-
-            # ----------------------------------------------------------
-            # Binary operators
-            # ----------------------------------------------------------
-            elif token in self.BINARY_OPERATORS:
-
-                if previous is None:
-                    raise SyntaxError(
-                        f"Invalid regex: operator '{token}' "
-                        "cannot appear at the beginning."
-                    )
-
-                if previous in {"|", ".", "("}:
-                    raise SyntaxError(
-                        f"Invalid regex: operator '{token}' "
-                        "has no left operand."
-                    )
-
-                while (
-                    operator_stack
-                    and operator_stack[-1] != "("
-                    and self.PRECEDENCE[operator_stack[-1]]
-                    >= self.PRECEDENCE[token]
-                ):
-                    output.append(operator_stack.pop())
-
-                operator_stack.append(token)
-
-            else:
-                raise SyntaxError(
-                    f"Invalid regex token: {token!r}"
-                )
-
-            previous = token
-
-        # Expression cannot end with a binary operator.
-        if previous in {"|", "."}:
-            raise SyntaxError(
-                f"Invalid regex: expression cannot end with '{previous}'."
-            )
-
-        # Empty parentheses are invalid.
-        if previous == "(":
-            raise SyntaxError(
-                "Invalid regex: empty parentheses '()' are not allowed."
-            )
-
-        while operator_stack:
-            operator = operator_stack.pop()
-
-            if operator == "(":
-                raise SyntaxError(
-                    "Invalid regex: unmatched opening parenthesis '('."
-                )
-
-            output.append(operator)
-
-        return output
-
-    # ------------------------------------------------------------------
-    # AST CONSTRUCTION
-    # ------------------------------------------------------------------
-
-    def _build_ast(self, postfix: List[str]) -> RegexNode:
+    def _parse_atom(self) -> RegexNode:
         """
-        Construct an AST from postfix notation.
+        atom -> '(' expression? ')' | '\' char | 'ε' | literal
         """
+        if self._pos >= self._length:
+            raise RegexSyntaxError("Unexpected end of pattern", self._pos)
 
-        stack: List[RegexNode] = []
+        ch = self._peek()
 
-        for token in postfix:
+        if ch in ("*", "+", "?"):
+            raise RegexSyntaxError(f"Dangling operator '{ch}' with no preceding target", self._pos)
 
-            # ----------------------------------------------------------
-            # Literal
-            # ----------------------------------------------------------
-            if self._is_literal(token):
-                stack.append(
-                    RegexNode(
-                        RegexNodeType.LITERAL,
-                        value=token,
-                    )
-                )
+        if ch == "|":
+            raise RegexSyntaxError("Empty alternation branch before '|'", self._pos)
 
-            # ----------------------------------------------------------
-            # Epsilon
-            # ----------------------------------------------------------
-            elif token == "ε":
-                stack.append(
-                    RegexNode(
-                        RegexNodeType.EPSILON
-                    )
-                )
+        if ch == ")":
+            raise RegexSyntaxError("Unexpected closing parenthesis ')'", self._pos)
 
-            # ----------------------------------------------------------
-            # Unary operators
-            # ----------------------------------------------------------
-            elif token in self.UNARY_OPERATORS:
+        if ch == "(":
+            open_pos = self._pos
+            self._advance()  # consume '('
 
-                if not stack:
-                    raise SyntaxError(
-                        f"Invalid regex: operator '{token}' "
-                        "has no operand."
-                    )
+            if self._pos >= self._length:
+                raise RegexSyntaxError("Unbalanced parenthesis: missing ')'", open_pos)
 
-                child = stack.pop()
+            # Check for empty parentheses `()` -> Epsilon
+            if self._peek() == ")":
+                self._advance()  # consume ')'
+                return RegexNode(RegexNodeType.EPSILON)
 
-                if token == "*":
-                    node_type = RegexNodeType.STAR
+            expr = self._parse_expression()
 
-                elif token == "+":
-                    node_type = RegexNodeType.PLUS
+            if self._pos >= self._length or self._peek() != ")":
+                raise RegexSyntaxError("Unbalanced parenthesis: missing ')'", open_pos)
 
-                else:
-                    node_type = RegexNodeType.QUESTION
+            self._advance()  # consume ')'
+            return expr
 
-                stack.append(
-                    RegexNode(
-                        node_type,
-                        child=child,
-                    )
-                )
+        if ch == "\\":
+            esc_pos = self._pos
+            self._advance()  # consume '\'
+            if self._pos >= self._length:
+                raise RegexSyntaxError("Dangling escape character '\\' at end of pattern", esc_pos)
+            escaped_char = self._advance()
+            return RegexNode(RegexNodeType.LITERAL, value=escaped_char)
 
-            # ----------------------------------------------------------
-            # Binary operators
-            # ----------------------------------------------------------
-            elif token in self.BINARY_OPERATORS:
+        if ch == "ε":
+            self._advance()
+            return RegexNode(RegexNodeType.EPSILON)
 
-                if len(stack) < 2:
-                    raise SyntaxError(
-                        f"Invalid regex: operator '{token}' "
-                        "does not have two operands."
-                    )
-
-                right = stack.pop()
-                left = stack.pop()
-
-                if token == "|":
-                    node_type = RegexNodeType.UNION
-                else:
-                    node_type = RegexNodeType.CONCAT
-
-                stack.append(
-                    RegexNode(
-                        node_type,
-                        left=left,
-                        right=right,
-                    )
-                )
-
-            else:
-                raise SyntaxError(
-                    f"Unexpected token while building AST: {token!r}"
-                )
-
-        if len(stack) != 1:
-            raise SyntaxError(
-                "Invalid regex: could not construct a single AST."
-            )
-
-        return stack[0]
-
-    # ------------------------------------------------------------------
-    # HELPERS
-    # ------------------------------------------------------------------
-
-    def _is_literal(self, token: str) -> bool:
-        """
-        Determine whether a token represents a literal character.
-        """
-
-        return token not in {
-            "(",
-            ")",
-            "|",
-            ".",
-            "*",
-            "+",
-            "?",
-            "ε",
-        }
+        # Standard literal character
+        self._advance()
+        return RegexNode(RegexNodeType.LITERAL, value=ch)

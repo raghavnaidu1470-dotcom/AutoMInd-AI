@@ -37,35 +37,50 @@ export const api = {
    * Submits regular expression to retrieve NFA, DFA, and Minimized DFA
    */
   async parseRegex(regex) {
+    let res;
     try {
-      const res = await fetch(`${BASE_URL}/automata/parse`, {
+      res = await fetch(`${BASE_URL}/automata/parse`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ regex }),
       });
-      if (!res.ok) {
-        const errorDetail = await res.text().catch(() => '');
-        throw new Error(`Server returned ${res.status}: ${errorDetail}`);
-      }
-      const data = await res.json();
-      return { ...data, isLive: true };
-    } catch (err) {
-      console.warn('Backend /api/automata/parse unavailable, using mock automata fallback:', err.message);
+    } catch (networkErr) {
+      console.warn('Backend /api/automata/parse unreachable, using mock automata fallback:', networkErr.message);
       return {
         ...MOCK_AUTOMATA_BUNDLE,
         regex,
         isLive: false,
-        fallbackReason: err.message,
+        fallbackReason: networkErr.message,
       };
     }
+
+    if (!res.ok) {
+      let detailMsg = `Server returned ${res.status}`;
+      try {
+        const errJson = await res.json();
+        detailMsg = errJson.detail || detailMsg;
+      } catch (e) {
+        const text = await res.text().catch(() => '');
+        if (text) detailMsg = text;
+      }
+
+      const error = new Error(detailMsg);
+      error.status = res.status;
+      error.isSyntaxError = (res.status === 400 || res.status === 422);
+      throw error;
+    }
+
+    const data = await res.json();
+    return { ...data, isLive: true };
   },
 
   /**
    * Runs candidate string simulation on the selected automaton
    */
   async runSimulation(automaton, inputString) {
+    let res;
     try {
-      const res = await fetch(`${BASE_URL}/simulation/run`, {
+      res = await fetch(`${BASE_URL}/simulation/run`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -73,29 +88,41 @@ export const api = {
           input_string: inputString,
         }),
       });
-      if (!res.ok) {
-        const errorDetail = await res.text().catch(() => '');
-        throw new Error(`Server returned ${res.status}: ${errorDetail}`);
-      }
-      const data = await res.json();
-      return { ...data, isLive: true };
-    } catch (err) {
-      console.warn('Backend /api/simulation/run unavailable, using mock simulation fallback:', err.message);
+    } catch (networkErr) {
+      console.warn('Backend /api/simulation/run unreachable, using mock simulation fallback:', networkErr.message);
       return {
         ...MOCK_SIMULATION_RESULT,
         input_string: inputString,
         isLive: false,
-        fallbackReason: err.message,
+        fallbackReason: networkErr.message,
       };
     }
+
+    if (!res.ok) {
+      let detailMsg = `Server returned ${res.status}`;
+      try {
+        const errJson = await res.json();
+        detailMsg = errJson.detail || detailMsg;
+      } catch (e) {
+        const text = await res.text().catch(() => '');
+        if (text) detailMsg = text;
+      }
+      const error = new Error(detailMsg);
+      error.status = res.status;
+      throw error;
+    }
+
+    const data = await res.json();
+    return { ...data, isLive: true };
   },
 
   /**
    * Requests real GNN prediction, GNNExplainer critical subgraphs, and SHAP attributions
    */
   async getExplanation(automaton, simulationTrace, inputString) {
+    let res;
     try {
-      const res = await fetch(`${BASE_URL}/xai/explain`, {
+      res = await fetch(`${BASE_URL}/xai/explain`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -104,20 +131,31 @@ export const api = {
           input_string: inputString,
         }),
       });
-      if (!res.ok) {
-        const errorDetail = await res.text().catch(() => '');
-        throw new Error(`Server returned ${res.status}: ${errorDetail}`);
-      }
-      const data = await res.json();
-      return { ...data, isLive: true };
-    } catch (err) {
-      console.warn('Backend /api/xai/explain unavailable, using mock explanation fallback:', err.message);
+    } catch (networkErr) {
+      console.warn('Backend /api/xai/explain unreachable, using mock explanation fallback:', networkErr.message);
       return {
         ...MOCK_XAI_EXPLANATION,
         input_string: inputString,
         isLive: false,
-        fallbackReason: err.message,
+        fallbackReason: networkErr.message,
       };
     }
+
+    if (!res.ok) {
+      let detailMsg = `Server returned ${res.status}`;
+      try {
+        const errJson = await res.json();
+        detailMsg = errJson.detail || detailMsg;
+      } catch (e) {
+        const text = await res.text().catch(() => '');
+        if (text) detailMsg = text;
+      }
+      const error = new Error(detailMsg);
+      error.status = res.status;
+      throw error;
+    }
+
+    const data = await res.json();
+    return { ...data, isLive: true };
   },
 };

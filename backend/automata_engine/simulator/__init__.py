@@ -1,7 +1,5 @@
 """
-Automata Simulator Package (Member A)
-=====================================
-Simulates input strings step-by-step against NFAs and DFAs with full execution trace logging.
+Automata Simulator Package
 """
 
 from .simulator import AutomataSimulator

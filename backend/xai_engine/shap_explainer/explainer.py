@@ -27,6 +27,9 @@ except ImportError:
     SHAP_AVAILABLE = False
 
 
+from backend.xai_engine.constants import NODE_FEATURE_NAMES
+
+
 class AutomataSHAPExplainer:
     """
     Computes game-theoretic Shapley values / feature attributions over graph & trace features.
@@ -34,14 +37,7 @@ class AutomataSHAPExplainer:
     with seamless fallback when PyTorch or models are not available.
     """
 
-    FEATURE_NAMES = [
-        "is_start",
-        "is_accepting",
-        "in_degree",
-        "out_degree",
-        "visit_frequency",
-        "final_state_match",
-    ]
+    FEATURE_NAMES = list(NODE_FEATURE_NAMES)
 
     def __init__(self):
         pass

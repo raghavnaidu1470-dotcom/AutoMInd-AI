@@ -28,6 +28,9 @@ except ImportError:
     nn = object  # type: ignore
 
 
+from backend.xai_engine.constants import NODE_FEATURE_DIM, EDGE_FEATURE_DIM
+
+
 if TORCH_AVAILABLE:
 
     class GraphConvLayer(nn.Module):
@@ -98,8 +101,8 @@ if TORCH_AVAILABLE:
 
         def __init__(
             self,
-            node_in_dim: int = 6,
-            edge_in_dim: int = 3,
+            node_in_dim: int = NODE_FEATURE_DIM,
+            edge_in_dim: int = EDGE_FEATURE_DIM,
             hidden_dim: int = 32,
             num_classes: int = 2,
             dropout: float = 0.1,

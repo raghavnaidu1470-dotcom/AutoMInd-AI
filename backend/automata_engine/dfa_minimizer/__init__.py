@@ -1,7 +1,5 @@
 """
-DFA Minimizer Package (Member A)
-================================
-Minimizes Deterministic Finite Automata using Hopcroft's or Myhill-Nerode algorithms.
+DFA Minimizer Package
 """
 
 from .minimizer import DFAMinimizer

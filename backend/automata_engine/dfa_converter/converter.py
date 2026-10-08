@@ -1,304 +1,187 @@
 """
-NFA -> DFA Converter
-====================
-Converts an NFA into a DFA using the subset/powerset construction.
+Subset Construction (NFA -> DFA Converter)
+==========================================
+Owned by: Member A (Automata Theory Engine)
 
-Main steps:
-    1. Compute epsilon-closure of the NFA start state.
-    2. Treat that closure as the DFA start state.
-    3. For every DFA state and input symbol:
-         - move through matching NFA transitions
-         - compute epsilon-closure
-    4. Create a DFA state for every unique set of NFA states.
-    5. A DFA state is accepting if it contains at least one
-       accepting NFA state.
+This module implements the Subset Construction (Powerset Construction) algorithm.
+It transforms an NFA into an equivalent Deterministic Finite Automaton (DFA) where:
+  1. For every state and every alphabet symbol, there is exactly one transition.
+  2. No epsilon (ε) transitions exist.
+  3. Each DFA state corresponds to a subset of NFA states reachable via ε-closure.
+  4. An explicit dead/trap state is added only when necessary to ensure the
+     transition function is complete over the entire alphabet.
+  5. State naming (q0, q1, ...) and transition ordering are strictly deterministic.
 """
 
-from typing import Set, Dict, FrozenSet, List
+from typing import Set, Dict, FrozenSet, List, Tuple, Optional
+import uuid
 
-from ..models import Automaton, State, Transition
+from ..models import Automaton, State, Transition, AutomatonMetadata
 
 
 class DFAConverter:
     """
-    Converts an NFA into a DFA using subset construction.
+    Converts an NFA to a DFA using Subset Construction.
     """
-
-    EPSILON = "ε"
 
     def __init__(self):
         pass
 
-    # ------------------------------------------------------------------
-    # EPSILON CLOSURE
-    # ------------------------------------------------------------------
-
-    def epsilon_closure(
-        self,
-        nfa: Automaton,
-        states: Set[str],
-    ) -> Set[str]:
-        """
-        Find all states reachable from `states` using only epsilon
-        transitions.
-
-        Example:
-
-            s0 --ε--> s1 --ε--> s2
-
-        epsilon_closure({s0}) = {s0, s1, s2}
-        """
-
-        closure = set(states)
-        stack = list(states)
-
-        while stack:
-            current = stack.pop()
-
-            for transition in nfa.transitions:
-                if (
-                    transition.from_state == current
-                    and transition.symbol in {self.EPSILON, ""}
-                ):
-                    target = transition.to_state
-
-                    if target not in closure:
-                        closure.add(target)
-                        stack.append(target)
-
-        return closure
-
-    # ------------------------------------------------------------------
-    # MOVE
-    # ------------------------------------------------------------------
-
-    def move(
-        self,
-        nfa: Automaton,
-        states: Set[str],
-        symbol: str,
-    ) -> Set[str]:
-        """
-        Find all NFA states reachable from `states` using `symbol`.
-
-        Epsilon transitions are not followed here.
-        Epsilon closure is calculated separately.
-        """
-
-        result = set()
-
-        for state in states:
-            for transition in nfa.transitions:
-                if (
-                    transition.from_state == state
-                    and transition.symbol == symbol
-                ):
-                    result.add(transition.to_state)
-
-        return result
-
-    # ------------------------------------------------------------------
-    # DFA STATE ID
-    # ------------------------------------------------------------------
-
-    def _dfa_state_id(
-        self,
-        state_set: FrozenSet[str],
-    ) -> str:
-        """
-        Generate a readable DFA state ID.
-
-        Example:
-
-            frozenset({"s0", "s1"}) -> "q0"
-        """
-
-        # The actual numbering is assigned in convert().
-        return ""
-
-    # ------------------------------------------------------------------
-    # CONVERSION
-    # ------------------------------------------------------------------
-
     def convert(self, nfa: Automaton) -> Automaton:
         """
-        Convert an NFA into a DFA.
+        Executes the subset construction algorithm on the input NFA.
 
         Args:
-            nfa: Automaton whose type must be "NFA".
+            nfa (Automaton): The source NFA to determinize.
 
         Returns:
-            Automaton with type="DFA".
+            Automaton: An equivalent DFA conforming to docs/json_schema.md.
 
         Raises:
-            ValueError: If the supplied automaton is not an NFA.
+            ValueError: If input automaton is not an NFA.
         """
-
         if nfa.type != "NFA":
-            raise ValueError(
-                "DFAConverter.convert() expects an automaton of type 'NFA'."
-            )
+            raise ValueError(f"Expected automaton type 'NFA', but got '{nfa.type}'.")
 
-        # --------------------------------------------------------------
-        # Get NFA accepting states.
-        # --------------------------------------------------------------
+        alphabet = sorted(list(set(nfa.alphabet)))
+        accepting_nfa_states: Set[str] = {s.id for s in nfa.states if s.is_accepting}
 
-        accepting_states = {
-            state.id
-            for state in nfa.states
-            if state.is_accepting
-        }
+        # Build adjacency structures
+        epsilon_transitions: Dict[str, Set[str]] = {s.id: set() for s in nfa.states}
+        symbol_transitions: Dict[Tuple[str, str], Set[str]] = {}
 
-        # --------------------------------------------------------------
-        # Get alphabet.
-        #
-        # Epsilon is never part of the DFA alphabet.
-        # --------------------------------------------------------------
+        for t in nfa.transitions:
+            if t.symbol in ("ε", ""):
+                epsilon_transitions.setdefault(t.from_state, set()).add(t.to_state)
+            else:
+                symbol_transitions.setdefault((t.from_state, t.symbol), set()).add(t.to_state)
 
-        alphabet = sorted(
-            symbol
-            for symbol in nfa.alphabet
-            if symbol not in {self.EPSILON, ""}
-        )
+        def epsilon_closure(states: FrozenSet[str]) -> FrozenSet[str]:
+            closure = set(states)
+            stack = list(states)
+            while stack:
+                curr = stack.pop()
+                for nxt in epsilon_transitions.get(curr, set()):
+                    if nxt not in closure:
+                        closure.add(nxt)
+                        stack.append(nxt)
+            return frozenset(closure)
 
-        # --------------------------------------------------------------
-        # Initial DFA state:
-        #
-        # epsilon-closure({NFA start state})
-        # --------------------------------------------------------------
+        def move(states: FrozenSet[str], symbol: str) -> FrozenSet[str]:
+            targets: Set[str] = set()
+            for s in states:
+                targets.update(symbol_transitions.get((s, symbol), set()))
+            return frozenset(targets)
 
-        start_closure = self.epsilon_closure(
-            nfa,
-            {nfa.start_state},
-        )
+        # 1. Initial DFA state: epsilon-closure of NFA start state
+        start_closure = epsilon_closure(frozenset([nfa.start_state]))
 
-        start_subset = frozenset(start_closure)
+        subset_to_id: Dict[FrozenSet[str], str] = {start_closure: "q0"}
+        id_to_subset: Dict[str, FrozenSet[str]] = {"q0": start_closure}
+        queue: List[FrozenSet[str]] = [start_closure]
 
-        # Map:
-        #   set of NFA states -> DFA state ID
-        subset_to_id: Dict[FrozenSet[str], str] = {
-            start_subset: "q0"
-        }
+        dfa_transitions: Dict[Tuple[str, str], str] = {}
 
-        # Store DFA subsets that still need processing.
-        unprocessed: List[FrozenSet[str]] = [start_subset]
-
-        dfa_states: List[State] = []
-        dfa_transitions: List[Transition] = []
-
-        # --------------------------------------------------------------
-        # Create DFA start state.
-        # --------------------------------------------------------------
-
-        dfa_states.append(
-            State(
-                id="q0",
-                label="q0",
-                is_start=True,
-                is_accepting=bool(
-                    start_subset & accepting_states
-                ),
-                metadata={
-                    "nfa_states": sorted(start_subset)
-                },
-            )
-        )
-
-        # --------------------------------------------------------------
-        # Subset construction.
-        # --------------------------------------------------------------
-
-        while unprocessed:
-
-            current_subset = unprocessed.pop(0)
+        # 2. Explore reachable subsets in BFS order
+        while queue:
+            current_subset = queue.pop(0)
             current_id = subset_to_id[current_subset]
 
-            for symbol in alphabet:
+            for sym in alphabet:
+                target_subset = epsilon_closure(move(current_subset, sym))
+                if target_subset:
+                    if target_subset not in subset_to_id:
+                        new_id = f"q{len(subset_to_id)}"
+                        subset_to_id[target_subset] = new_id
+                        id_to_subset[new_id] = target_subset
+                        queue.append(target_subset)
+                    dfa_transitions[(current_id, sym)] = subset_to_id[target_subset]
 
-                # Step 1:
-                # Follow the current symbol.
-                moved_states = self.move(
-                    nfa,
-                    set(current_subset),
-                    symbol,
+        # 3. Handle explicit dead/trap state if needed
+        # An explicit dead state is added if any (state, symbol) transition is missing,
+        # ensuring the DFA is complete over its alphabet.
+        needs_dead_state = False
+        all_created_ids = list(id_to_subset.keys())
+
+        for sid in all_created_ids:
+            for sym in alphabet:
+                if (sid, sym) not in dfa_transitions:
+                    needs_dead_state = True
+                    break
+            if needs_dead_state:
+                break
+
+        if needs_dead_state:
+            dead_id = f"q{len(id_to_subset)}"
+            id_to_subset[dead_id] = frozenset()
+            # The dead state self-loops on all symbols
+            for sym in alphabet:
+                dfa_transitions[(dead_id, sym)] = dead_id
+            # Route all missing transitions to the dead state
+            for sid in all_created_ids:
+                for sym in alphabet:
+                    if (sid, sym) not in dfa_transitions:
+                        dfa_transitions[(sid, sym)] = dead_id
+
+        # 4. Construct States in deterministic index order
+        def _state_key(s_id: str):
+            if s_id.startswith("q") and s_id[1:].isdigit():
+                return int(s_id[1:])
+            return s_id
+
+        sorted_state_ids = sorted(id_to_subset.keys(), key=_state_key)
+        states: List[State] = []
+
+        for sid in sorted_state_ids:
+            subset = id_to_subset[sid]
+            is_accepting = any(s in accepting_nfa_states for s in subset)
+            is_start = (sid == "q0")
+            nfa_subset_list = sorted(list(subset), key=lambda x: (int(x[1:]) if x.startswith("q") and x[1:].isdigit() else x))
+            states.append(
+                State(
+                    id=sid,
+                    label=sid,
+                    is_start=is_start,
+                    is_accepting=is_accepting,
+                    metadata={"nfa_subset": nfa_subset_list},
                 )
+            )
 
-                # If nothing can be reached, there is no transition.
-                if not moved_states:
-                    continue
+        # 5. Construct Transitions sorted deterministically
+        def _trans_sort_key(item: Tuple[Tuple[str, str], str]):
+            (u, sym), v = item
+            u_idx = int(u[1:]) if u.startswith("q") and u[1:].isdigit() else u
+            v_idx = int(v[1:]) if v.startswith("q") and v[1:].isdigit() else v
+            return (u_idx, sym, v_idx)
 
-                # Step 2:
-                # Follow all epsilon transitions from the result.
-                target_closure = self.epsilon_closure(
-                    nfa,
-                    moved_states,
-                )
+        sorted_transitions = sorted(dfa_transitions.items(), key=_trans_sort_key)
+        transitions: List[Transition] = [
+            Transition(
+                id=f"dt{idx}",
+                from_state=u,
+                to_state=v,
+                symbol=sym,
+            )
+            for idx, ((u, sym), v) in enumerate(sorted_transitions)
+        ]
 
-                target_subset = frozenset(target_closure)
+        pattern_str = nfa.metadata.regex if nfa.metadata else ""
 
-                # ------------------------------------------------------
-                # Create a new DFA state if this subset hasn't appeared.
-                # ------------------------------------------------------
-
-                if target_subset not in subset_to_id:
-
-                    new_id = f"q{len(subset_to_id)}"
-
-                    subset_to_id[target_subset] = new_id
-                    unprocessed.append(target_subset)
-
-                    dfa_states.append(
-                        State(
-                            id=new_id,
-                            label=new_id,
-                            is_start=False,
-                            is_accepting=bool(
-                                target_subset & accepting_states
-                            ),
-                            metadata={
-                                "nfa_states": sorted(target_subset)
-                            },
-                        )
-                    )
-
-                target_id = subset_to_id[target_subset]
-
-                # ------------------------------------------------------
-                # Add DFA transition.
-                # ------------------------------------------------------
-
-                dfa_transitions.append(
-                    Transition(
-                        id=f"{current_id}_{symbol}_{target_id}",
-                        from_state=current_id,
-                        to_state=target_id,
-                        symbol=symbol,
-                    )
-                )
-
-        # --------------------------------------------------------------
-        # Build final DFA.
-        # --------------------------------------------------------------
+        metadata = AutomatonMetadata(
+            regex=pattern_str,
+            state_count=len(states),
+            transition_count=len(transitions),
+            is_minimized=False,
+            description="Constructed using Subset Construction (Powerset) Algorithm",
+        )
 
         return Automaton(
-            id="dfa",
-            name="Subset Construction DFA",
+            id=f"dfa_{uuid.uuid4().hex[:8]}",
+            name=f"DFA for {pattern_str}" if pattern_str else "DFA",
             type="DFA",
             alphabet=alphabet,
             start_state="q0",
-            states=dfa_states,
-            transitions=dfa_transitions,
-            metadata={
-                "regex": (
-                    nfa.metadata.regex
-                    if nfa.metadata is not None
-                    else None
-                ),
-                "state_count": len(dfa_states),
-                "transition_count": len(dfa_transitions),
-                "is_minimized": False,
-                "description": (
-                    "DFA generated using subset/powerset construction."
-                ),
-            },
+            states=states,
+            transitions=transitions,
+            metadata=metadata,
         )

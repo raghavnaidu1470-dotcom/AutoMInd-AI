@@ -1,9 +1,12 @@
 """
-Regex Parser Package (Member A)
-===============================
-Transforms regular expression strings into Abstract Syntax Trees (ASTs).
+Regex Parser Package
 """
 
-from .parser import RegexParser, RegexNode, RegexNodeType
+from .parser import RegexParser, RegexNode, RegexNodeType, RegexSyntaxError
 
-__all__ = ["RegexParser", "RegexNode", "RegexNodeType"]
+__all__ = [
+    "RegexParser",
+    "RegexNode",
+    "RegexNodeType",
+    "RegexSyntaxError",
+]

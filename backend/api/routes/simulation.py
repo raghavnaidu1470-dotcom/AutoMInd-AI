@@ -1,7 +1,7 @@
 """
 Simulation Routes
 =================
-Owned by: Member C (API, Visualization & Integration)
+Owned by: Member C (API, Visualization & Integration) & Member A (Automata Engine)
 Endpoints for executing candidate strings against finite automata.
 """
 
@@ -26,5 +26,10 @@ def run_simulation(payload: SimulationRequest):
     Executes an input string on an automaton and returns the step-by-step
     execution trace for frontend animation.
     """
-    result = simulation_service.run_simulation(payload.automaton, payload.input_string)
-    return result
+    try:
+        result = simulation_service.run_simulation(payload.automaton, payload.input_string)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Simulation error: {str(e)}")
