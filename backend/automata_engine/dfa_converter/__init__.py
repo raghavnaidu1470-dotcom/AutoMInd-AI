@@ -1,8 +1,5 @@
 """
-DFA Converter Package (Member A)
-================================
-Converts Non-Deterministic Finite Automata (NFA) to Deterministic Finite Automata (DFA)
-via the Subset Construction (Powerset) algorithm.
+DFA Converter Package
 """
 
 from .converter import DFAConverter

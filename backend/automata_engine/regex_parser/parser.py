@@ -1,33 +1,33 @@
-"""
+r"""
 Regex Parser & AST Construction
 ================================
 Owned by: Member A (Automata Theory Engine)
 
-Module Overview:
-----------------
 This module receives a raw regular expression string and transforms it into
-an Abstract Syntax Tree (AST). The AST represents the hierarchical order of
-operations according to formal regex precedence:
-  1. Parentheses `(...)` (highest)
-  2. Kleene star `*`
-  3. Concatenation `.` (often implicit, e.g. 'ab' -> 'a.b')
-  4. Alternation / Union `|` (lowest)
+an Abstract Syntax Tree (AST) using a recursive-descent parser.
 
-Expected Input:
----------------
-  regex: str (e.g. "(a|b)*abb", "a(b|c)*", "01*|10*")
-
-Expected Output:
-----------------
-  RegexNode (Root of the parsed AST)
-
-Downstream Consumer:
---------------------
-  Member A's `nfa_builder` (Thompson's construction traverses this AST).
+Precedence (lowest to highest):
+  1. Alternation / Union `|`
+  2. Concatenation (implicit, e.g. 'ab' -> 'a . b')
+  3. Repetition / Unary Postfix operators: Kleene star `*`, Plus `+`, Optional `?`
+  4. Atoms: Literals, Epsilon (`ε` or `()`), Escapes `\x`, Grouping `(...)`
 """
 
 from enum import Enum
 from typing import Optional, List
+
+
+class RegexSyntaxError(ValueError):
+    """
+    Exception raised when a regular expression contains a syntax error.
+    Includes the specific error message and character position.
+    """
+
+    def __init__(self, message: str, position: int = -1):
+        self.message = message
+        self.position = position
+        pos_str = f" at position {position}" if position >= 0 else ""
+        super().__init__(f"{message}{pos_str}")
 
 
 class RegexNodeType(str, Enum):
@@ -70,32 +70,45 @@ class RegexNode:
     def __repr__(self) -> str:
         if self.type == RegexNodeType.LITERAL:
             return f"Literal({self.value!r})"
+        if self.type == RegexNodeType.EPSILON:
+            return "Epsilon()"
         if self.type == RegexNodeType.STAR:
             return f"Star({self.child!r})"
+        if self.type == RegexNodeType.PLUS:
+            return f"Plus({self.child!r})"
+        if self.type == RegexNodeType.QUESTION:
+            return f"Question({self.child!r})"
         if self.type == RegexNodeType.CONCAT:
             return f"Concat({self.left!r}, {self.right!r})"
         if self.type == RegexNodeType.UNION:
             return f"Union({self.left!r}, {self.right!r})"
         return f"Node({self.type.value})"
 
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, RegexNode):
+            return False
+        return (
+            self.type == other.type
+            and self.value == other.value
+            and self.left == other.left
+            and self.right == other.right
+            and self.child == other.child
+        )
+
 
 class RegexParser:
     """
-    Parser for regular expressions.
-
-    TODO (Member A):
-      1. Preprocess string to insert explicit concatenation operators (e.g. "ab" -> "a.b").
-      2. Convert infix regex to postfix (Shunting-yard algorithm) or implement recursive-descent parser.
-      3. Construct the AST of RegexNode objects.
-      4. Handle syntax validation and raise descriptive SyntaxError on malformed regexes.
+    Recursive-descent parser for regular expressions producing a RegexNode AST.
     """
 
     def __init__(self):
-        pass
+        self._pattern: str = ""
+        self._pos: int = 0
+        self._length: int = 0
 
     def parse(self, pattern: str) -> RegexNode:
         """
-        Parses a regular expression string into an AST.
+        Parses a regular expression pattern into an AST.
 
         Args:
             pattern (str): The regular expression pattern (e.g., "(a|b)*abb").
@@ -104,18 +117,153 @@ class RegexParser:
             RegexNode: Root of the parsed AST.
 
         Raises:
-            NotImplementedError: Until Member A implements the parsing algorithm.
-            ValueError: If pattern is empty or malformed.
+            RegexSyntaxError: If the pattern is malformed.
         """
-        if not pattern:
-            raise ValueError("Regex pattern cannot be empty.")
+        if pattern is None or len(pattern) == 0:
+            raise RegexSyntaxError("Regex pattern cannot be empty.", 0)
 
-        # --- PLACEHOLDER FOR MEMBER A ---
-        # Implementation roadmap:
-        # Step 1: Pre-process characters (insert explicit concat dots)
-        # Step 2: Convert to Postfix via Shunting Yard
-        # Step 3: Construct RegexNode tree from Postfix stack
-        raise NotImplementedError(
-            "RegexParser.parse() is assigned to Member A. "
-            "Please implement lexical analysis and AST construction."
-        )
+        self._pattern = pattern
+        self._pos = 0
+        self._length = len(pattern)
+
+        root = self._parse_expression()
+
+        if self._pos < self._length:
+            char = self._peek()
+            if char == ")":
+                raise RegexSyntaxError("Unexpected closing parenthesis ')'", self._pos)
+            raise RegexSyntaxError(f"Unexpected character '{char}'", self._pos)
+
+        return root
+
+    def _peek(self) -> Optional[str]:
+        if self._pos < self._length:
+            return self._pattern[self._pos]
+        return None
+
+    def _advance(self) -> str:
+        ch = self._pattern[self._pos]
+        self._pos += 1
+        return ch
+
+    def _parse_expression(self) -> RegexNode:
+        """
+        expression -> term ('|' term)*
+        """
+        if self._pos >= self._length:
+            raise RegexSyntaxError("Unexpected end of pattern", self._pos)
+
+        if self._peek() == "|":
+            raise RegexSyntaxError("Empty alternation branch before '|'", self._pos)
+
+        left = self._parse_term()
+
+        while self._peek() == "|":
+            pipe_pos = self._pos
+            self._advance()  # consume '|'
+
+            if self._pos >= self._length:
+                raise RegexSyntaxError("Empty alternation branch after '|'", pipe_pos)
+            if self._peek() == "|":
+                raise RegexSyntaxError("Empty alternation branch between '||'", pipe_pos)
+            if self._peek() == ")":
+                raise RegexSyntaxError("Empty alternation branch before ')'", pipe_pos)
+
+            right = self._parse_term()
+            left = RegexNode(RegexNodeType.UNION, left=left, right=right)
+
+        return left
+
+    def _parse_term(self) -> RegexNode:
+        """
+        term -> factor+
+        Implicit concatenation of factors.
+        """
+        factors: List[RegexNode] = []
+
+        while self._pos < self._length and self._peek() not in ("|", ")"):
+            factor = self._parse_factor()
+            factors.append(factor)
+
+        if not factors:
+            raise RegexSyntaxError("Expected expression or factor", self._pos)
+
+        # Fold factors with CONCAT left-associatively
+        result = factors[0]
+        for next_factor in factors[1:]:
+            result = RegexNode(RegexNodeType.CONCAT, left=result, right=next_factor)
+        return result
+
+    def _parse_factor(self) -> RegexNode:
+        """
+        factor -> atom ('*' | '+' | '?')?
+        """
+        atom = self._parse_atom()
+
+        if self._pos < self._length and self._peek() in ("*", "+", "?"):
+            op = self._advance()
+            if self._pos < self._length and self._peek() in ("*", "+", "?"):
+                next_op = self._peek()
+                raise RegexSyntaxError(f"Multiple repeat operators '{op}' and '{next_op}'", self._pos)
+            if op == "*":
+                atom = RegexNode(RegexNodeType.STAR, child=atom)
+            elif op == "+":
+                atom = RegexNode(RegexNodeType.PLUS, child=atom)
+            elif op == "?":
+                atom = RegexNode(RegexNodeType.QUESTION, child=atom)
+
+        return atom
+
+    def _parse_atom(self) -> RegexNode:
+        """
+        atom -> '(' expression? ')' | '\' char | 'ε' | literal
+        """
+        if self._pos >= self._length:
+            raise RegexSyntaxError("Unexpected end of pattern", self._pos)
+
+        ch = self._peek()
+
+        if ch in ("*", "+", "?"):
+            raise RegexSyntaxError(f"Dangling operator '{ch}' with no preceding target", self._pos)
+
+        if ch == "|":
+            raise RegexSyntaxError("Empty alternation branch before '|'", self._pos)
+
+        if ch == ")":
+            raise RegexSyntaxError("Unexpected closing parenthesis ')'", self._pos)
+
+        if ch == "(":
+            open_pos = self._pos
+            self._advance()  # consume '('
+
+            if self._pos >= self._length:
+                raise RegexSyntaxError("Unbalanced parenthesis: missing ')'", open_pos)
+
+            # Check for empty parentheses `()` -> Epsilon
+            if self._peek() == ")":
+                self._advance()  # consume ')'
+                return RegexNode(RegexNodeType.EPSILON)
+
+            expr = self._parse_expression()
+
+            if self._pos >= self._length or self._peek() != ")":
+                raise RegexSyntaxError("Unbalanced parenthesis: missing ')'", open_pos)
+
+            self._advance()  # consume ')'
+            return expr
+
+        if ch == "\\":
+            esc_pos = self._pos
+            self._advance()  # consume '\'
+            if self._pos >= self._length:
+                raise RegexSyntaxError("Dangling escape character '\\' at end of pattern", esc_pos)
+            escaped_char = self._advance()
+            return RegexNode(RegexNodeType.LITERAL, value=escaped_char)
+
+        if ch == "ε":
+            self._advance()
+            return RegexNode(RegexNodeType.EPSILON)
+
+        # Standard literal character
+        self._advance()
+        return RegexNode(RegexNodeType.LITERAL, value=ch)
