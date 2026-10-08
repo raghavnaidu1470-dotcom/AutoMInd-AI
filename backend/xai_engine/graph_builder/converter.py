@@ -11,8 +11,8 @@ Node Features Matrix X (shape [N, num_node_features]):
   1: is_accepting (0.0 or 1.0)
   2: in_degree (normalized)
   3: out_degree (normalized)
-  4: visit_count (frequency of state visits in simulation trace)
-  5: is_final_state (1.0 if state was active at the end of simulation)
+  4: visit_frequency (frequency of state visits in simulation trace)
+  5: final_state_match (1.0 if state was active at the end of simulation)
 
 Edge Index E (shape [2, num_edges]):
   Directed edge source and target node indices.
@@ -20,12 +20,19 @@ Edge Index E (shape [2, num_edges]):
 Edge Features Matrix E_attr (shape [num_edges, num_edge_features]):
   0: symbol_index (normalized integer encoding of alphabet character)
   1: is_traversed (1.0 if this edge was traversed in the simulation trace, else 0.0)
-  2: traversal_count (normalized count of times traversed)
+  2: traversal_frequency (normalized count of times traversed)
 """
 
 from dataclasses import dataclass
 from typing import Dict, List, Any, Optional, Tuple
 import math
+
+from backend.xai_engine.constants import (
+    NODE_FEATURE_NAMES,
+    NODE_FEATURE_DIM,
+    EDGE_FEATURE_NAMES,
+    EDGE_FEATURE_DIM,
+)
 
 try:
     import torch
@@ -68,8 +75,10 @@ class AutomataGraphConverter:
     tensor graph feature representations.
     """
 
-    NODE_FEATURE_DIM = 6
-    EDGE_FEATURE_DIM = 3
+    NODE_FEATURE_DIM = NODE_FEATURE_DIM
+    EDGE_FEATURE_DIM = EDGE_FEATURE_DIM
+    NODE_FEATURE_NAMES = NODE_FEATURE_NAMES
+    EDGE_FEATURE_NAMES = EDGE_FEATURE_NAMES
 
     def __init__(self):
         pass
