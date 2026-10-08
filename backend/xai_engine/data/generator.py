@@ -28,10 +28,16 @@ from typing import Dict, List, Any, Optional, Tuple, Set
 from collections import deque
 
 
+from backend.automata_engine.engine import build_all
+from backend.automata_engine.simulator.simulator import AutomataSimulator
+from backend.automata_engine.models import Automaton
+
+
 class SyntheticAutomataGenerator:
     """
     Generator creating varied synthetic automata and labeled simulation traces
     for training and evaluating GNN classifiers and explainability modules.
+    Now supports both synthetic language families and REAL regex-derived NFAs/DFAs.
     """
 
     DEFAULT_ALPHABETS = [
@@ -41,9 +47,36 @@ class SyntheticAutomataGenerator:
         ["0", "1", "2"],
     ]
 
+    REAL_REGEX_TRAIN_PATTERNS = [
+        "(a|b)*abb",
+        "a*b*",
+        "(ab)+",
+        "a(b|c)*d",
+        "0*10*1*",
+        "(0|1)*00(0|1)*",
+        "a+b+c+",
+        "(a|b)*a(a|b)",
+        "1(0|1)*0",
+        "(ab|ba)*",
+        "a?b+c*",
+        "(0|1)+",
+        "(a|b)*aaa(a|b)*",
+        "(a|b)+abb",
+        "a(a|b)*b",
+    ]
+
+    REAL_REGEX_HELD_OUT_PATTERNS = [
+        "(x|y)*yyy",
+        "0(1|2)+0",
+        "(a|b|c)*ab(a|b|c)*",
+        "1+0+1+",
+        "(a|b)*bb(a|b)*",
+    ]
+
     def __init__(self, seed: Optional[int] = None):
         if seed is not None:
             random.seed(seed)
+        self.simulator = AutomataSimulator()
 
     # -------------------------------------------------------------------------
     # Structured Automata Generators
@@ -675,6 +708,199 @@ class SyntheticAutomataGenerator:
         for auto in automata_list:
             samples = self.generate_labeled_samples(
                 auto,
+                num_accepted=per_class,
+                num_rejected=per_class,
+            )
+            dataset.extend(samples)
+
+        random.shuffle(dataset)
+        return dataset
+
+    # -------------------------------------------------------------------------
+    # Real Regex Automata Dataset Generators
+    # -------------------------------------------------------------------------
+
+    def generate_random_regex(self, max_depth: int = 3, alphabet: Optional[List[str]] = None) -> str:
+        """Generates a syntactically valid random regular expression."""
+        alpha = alphabet or ["a", "b"]
+
+        def _rec(d: int) -> str:
+            if d >= max_depth or random.random() < 0.35:
+                return random.choice(alpha)
+            op = random.choice(["concat", "union", "star", "plus", "paren"])
+            if op == "concat":
+                return f"{_rec(d + 1)}{_rec(d + 1)}"
+            elif op == "union":
+                return f"({_rec(d + 1)}|{_rec(d + 1)})"
+            elif op == "star":
+                inner = _rec(d + 1)
+                return f"({inner})*" if len(inner) > 1 else f"{inner}*"
+            elif op == "plus":
+                inner = _rec(d + 1)
+                return f"({inner})+" if len(inner) > 1 else f"{inner}+"
+            else:
+                return f"({_rec(d + 1)})"
+
+        return _rec(0)
+
+    def generate_real_regex_automata(
+        self,
+        patterns: Optional[List[str]] = None,
+        include_nfa: bool = True,
+        include_dfa: bool = True,
+        include_min_dfa: bool = True,
+    ) -> List[Automaton]:
+        """
+        Builds real Automaton models (NFA, DFA, MINIMIZED_DFA) from regex patterns
+        using the real Member A automata engine.
+        """
+        regex_list = patterns or self.REAL_REGEX_TRAIN_PATTERNS
+        result_automata: List[Automaton] = []
+
+        for pat in regex_list:
+            try:
+                bundle = build_all(pat)
+                if include_nfa:
+                    result_automata.append(bundle["nfa"])
+                if include_dfa:
+                    result_automata.append(bundle["dfa"])
+                if include_min_dfa:
+                    result_automata.append(bundle["minimized_dfa"])
+            except Exception as e:
+                # Skip invalid regexes
+                continue
+
+        return result_automata
+
+    def generate_labeled_samples_for_automaton(
+        self,
+        automaton: Automaton,
+        num_accepted: int = 5,
+        num_rejected: int = 5,
+        max_length: int = 8,
+    ) -> List[Dict[str, Any]]:
+        """
+        Generates labeled samples and simulation traces using the real AutomataSimulator.
+        """
+        alpha = list(automaton.alphabet) if automaton.alphabet else ["a", "b"]
+        accepted_samples: List[Dict[str, Any]] = []
+        rejected_samples: List[Dict[str, Any]] = []
+        seen_strings: Set[str] = set()
+
+        # 1. Deterministic probe candidates (empty string + short strings)
+        probe_strings: List[str] = [""]
+        for ch in alpha:
+            probe_strings.append(ch)
+        for c1 in alpha:
+            for c2 in alpha:
+                probe_strings.append(c1 + c2)
+                if len(probe_strings) > 30:
+                    break
+
+        # 2. Random walk probes
+        for _ in range(80):
+            length = random.randint(1, max_length)
+            cand = "".join(random.choice(alpha) for _ in range(length))
+            probe_strings.append(cand)
+
+        auto_dict = automaton.model_dump()
+
+        for s in probe_strings:
+            if s in seen_strings:
+                continue
+            seen_strings.add(s)
+
+            sim = self.simulator.simulate(automaton, s)
+            trace_dict = sim.model_dump()
+            sample_record = {
+                "automaton": auto_dict,
+                "simulation_trace": trace_dict,
+                "input_string": s,
+                "accepted": sim.accepted,
+            }
+
+            if sim.accepted and len(accepted_samples) < num_accepted:
+                accepted_samples.append(sample_record)
+            elif (not sim.accepted) and len(rejected_samples) < num_rejected:
+                rejected_samples.append(sample_record)
+
+            if len(accepted_samples) >= num_accepted and len(rejected_samples) >= num_rejected:
+                break
+
+        # If more rejected are needed, generate invalid chars or mismatched lengths
+        attempts = 0
+        while len(rejected_samples) < num_rejected and attempts < 20:
+            attempts += 1
+            cand = "".join(random.choice(alpha) for _ in range(max_length + 2))
+            sim = self.simulator.simulate(automaton, cand)
+            if not sim.accepted and cand not in seen_strings:
+                seen_strings.add(cand)
+                rejected_samples.append({
+                    "automaton": auto_dict,
+                    "simulation_trace": sim.model_dump(),
+                    "input_string": cand,
+                    "accepted": False,
+                })
+
+        combined = accepted_samples + rejected_samples
+        random.shuffle(combined)
+        return combined
+
+    def generate_combined_dataset(
+        self,
+        num_synthetic_automata: int = 25,
+        samples_per_automaton: int = 8,
+        real_regex_patterns: Optional[List[str]] = None,
+    ) -> List[Dict[str, Any]]:
+        """
+        Generates combined training dataset mixing synthetic formal language families
+        with real regex-derived NFAs, DFAs, and Minimized DFAs.
+        """
+        dataset: List[Dict[str, Any]] = []
+
+        # 1. Synthetic families
+        synthetic_samples = self.generate_dataset(
+            num_automata=num_synthetic_automata,
+            samples_per_automaton=samples_per_automaton,
+        )
+        dataset.extend(synthetic_samples)
+
+        # 2. Real regex automata (hand-written + random)
+        patterns = list(real_regex_patterns or self.REAL_REGEX_TRAIN_PATTERNS)
+        for _ in range(5):
+            rand_rx = self.generate_random_regex(max_depth=3)
+            patterns.append(rand_rx)
+
+        real_automata = self.generate_real_regex_automata(patterns)
+        per_class = max(1, samples_per_automaton // 2)
+
+        for auto in real_automata:
+            samples = self.generate_labeled_samples_for_automaton(
+                automaton=auto,
+                num_accepted=per_class,
+                num_rejected=per_class,
+            )
+            dataset.extend(samples)
+
+        random.shuffle(dataset)
+        return dataset
+
+    def generate_held_out_dataset(
+        self,
+        held_out_patterns: Optional[List[str]] = None,
+        samples_per_automaton: int = 8,
+    ) -> List[Dict[str, Any]]:
+        """
+        Generates a held-out evaluation dataset from unseen regex patterns.
+        """
+        patterns = held_out_patterns or self.REAL_REGEX_HELD_OUT_PATTERNS
+        real_automata = self.generate_real_regex_automata(patterns)
+        per_class = max(1, samples_per_automaton // 2)
+
+        dataset: List[Dict[str, Any]] = []
+        for auto in real_automata:
+            samples = self.generate_labeled_samples_for_automaton(
+                automaton=auto,
                 num_accepted=per_class,
                 num_rejected=per_class,
             )
