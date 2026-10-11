@@ -33,6 +33,7 @@ class Transition(BaseModel):
     from_state: str = Field(..., description="Source state ID")
     to_state: str = Field(..., description="Target state ID")
     symbol: str = Field(..., description="Alphabet symbol or 'ε' for epsilon transition")
+    metadata: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Custom metadata, e.g. source span")
 
 
 class AutomatonMetadata(BaseModel):

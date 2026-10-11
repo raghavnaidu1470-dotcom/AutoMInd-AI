@@ -99,3 +99,37 @@ def test_nfa_deterministic_state_order(parser, builder):
     trans1 = [(t.from_state, t.symbol, t.to_state) for t in nfa1.transitions]
     trans2 = [(t.from_state, t.symbol, t.to_state) for t in nfa2.transitions]
     assert trans1 == trans2
+
+
+def test_nfa_source_span_provenance(parser, builder):
+    """
+    Verifies that AST nodes and NFA states/transitions record source spans (start, end index).
+    """
+    regex = "(a|b)*abb"
+    ast = parser.parse(regex)
+    assert ast.source_span == (0, 9)
+
+    nfa = builder.build_from_ast(ast, regex)
+
+    # Every state and transition must have source_span in metadata
+    for state in nfa.states:
+        assert "source_span" in state.metadata, f"State {state.id} missing source_span"
+        span = state.metadata["source_span"]
+        assert isinstance(span, list)
+        assert len(span) == 2
+        assert 0 <= span[0] < span[1] <= len(regex)
+
+    for trans in nfa.transitions:
+        assert trans.metadata is not None
+        assert "source_span" in trans.metadata, f"Transition {trans.id} missing source_span"
+        span = trans.metadata["source_span"]
+        assert isinstance(span, list)
+        assert len(span) == 2
+        assert 0 <= span[0] < span[1] <= len(regex)
+
+    # Verify specific spans
+    # The literal 'a' in 'abb' is at index 6
+    a_trans = [t for t in nfa.transitions if t.symbol == "a" and t.metadata["source_span"] == [6, 7]]
+    assert len(a_trans) == 1
+    assert a_trans[0].symbol == "a"
+

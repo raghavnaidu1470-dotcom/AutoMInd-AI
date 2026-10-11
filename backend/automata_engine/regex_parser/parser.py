@@ -14,7 +14,7 @@ Precedence (lowest to highest):
 """
 
 from enum import Enum
-from typing import Optional, List
+from typing import Optional, List, Tuple
 
 
 class RegexSyntaxError(ValueError):
@@ -60,29 +60,32 @@ class RegexNode:
         left: Optional["RegexNode"] = None,
         right: Optional["RegexNode"] = None,
         child: Optional["RegexNode"] = None,
+        source_span: Optional[Tuple[int, int]] = None,
     ):
         self.type = node_type
         self.value = value
         self.left = left
         self.right = right
         self.child = child
+        self.source_span = source_span
 
     def __repr__(self) -> str:
+        span_str = f", span={self.source_span}" if self.source_span is not None else ""
         if self.type == RegexNodeType.LITERAL:
-            return f"Literal({self.value!r})"
+            return f"Literal({self.value!r}{span_str})"
         if self.type == RegexNodeType.EPSILON:
-            return "Epsilon()"
+            return f"Epsilon({span_str})"
         if self.type == RegexNodeType.STAR:
-            return f"Star({self.child!r})"
+            return f"Star({self.child!r}{span_str})"
         if self.type == RegexNodeType.PLUS:
-            return f"Plus({self.child!r})"
+            return f"Plus({self.child!r}{span_str})"
         if self.type == RegexNodeType.QUESTION:
-            return f"Question({self.child!r})"
+            return f"Question({self.child!r}{span_str})"
         if self.type == RegexNodeType.CONCAT:
-            return f"Concat({self.left!r}, {self.right!r})"
+            return f"Concat({self.left!r}, {self.right!r}{span_str})"
         if self.type == RegexNodeType.UNION:
-            return f"Union({self.left!r}, {self.right!r})"
-        return f"Node({self.type.value})"
+            return f"Union({self.left!r}, {self.right!r}{span_str})"
+        return f"Node({self.type.value}{span_str})"
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, RegexNode):
@@ -170,7 +173,9 @@ class RegexParser:
                 raise RegexSyntaxError("Empty alternation branch before ')'", pipe_pos)
 
             right = self._parse_term()
-            left = RegexNode(RegexNodeType.UNION, left=left, right=right)
+            start_pos = left.source_span[0] if left.source_span is not None else 0
+            end_pos = right.source_span[1] if right.source_span is not None else self._pos
+            left = RegexNode(RegexNodeType.UNION, left=left, right=right, source_span=(start_pos, end_pos))
 
         return left
 
@@ -191,7 +196,9 @@ class RegexParser:
         # Fold factors with CONCAT left-associatively
         result = factors[0]
         for next_factor in factors[1:]:
-            result = RegexNode(RegexNodeType.CONCAT, left=result, right=next_factor)
+            start_pos = result.source_span[0] if result.source_span is not None else 0
+            end_pos = next_factor.source_span[1] if next_factor.source_span is not None else self._pos
+            result = RegexNode(RegexNodeType.CONCAT, left=result, right=next_factor, source_span=(start_pos, end_pos))
         return result
 
     def _parse_factor(self) -> RegexNode:
@@ -205,12 +212,14 @@ class RegexParser:
             if self._pos < self._length and self._peek() in ("*", "+", "?"):
                 next_op = self._peek()
                 raise RegexSyntaxError(f"Multiple repeat operators '{op}' and '{next_op}'", self._pos)
+            start_pos = atom.source_span[0] if atom.source_span is not None else self._pos - 1
+            span = (start_pos, self._pos)
             if op == "*":
-                atom = RegexNode(RegexNodeType.STAR, child=atom)
+                atom = RegexNode(RegexNodeType.STAR, child=atom, source_span=span)
             elif op == "+":
-                atom = RegexNode(RegexNodeType.PLUS, child=atom)
+                atom = RegexNode(RegexNodeType.PLUS, child=atom, source_span=span)
             elif op == "?":
-                atom = RegexNode(RegexNodeType.QUESTION, child=atom)
+                atom = RegexNode(RegexNodeType.QUESTION, child=atom, source_span=span)
 
         return atom
 
@@ -242,7 +251,7 @@ class RegexParser:
             # Check for empty parentheses `()` -> Epsilon
             if self._peek() == ")":
                 self._advance()  # consume ')'
-                return RegexNode(RegexNodeType.EPSILON)
+                return RegexNode(RegexNodeType.EPSILON, source_span=(open_pos, self._pos))
 
             expr = self._parse_expression()
 
@@ -250,6 +259,7 @@ class RegexParser:
                 raise RegexSyntaxError("Unbalanced parenthesis: missing ')'", open_pos)
 
             self._advance()  # consume ')'
+            expr.source_span = (open_pos, self._pos)
             return expr
 
         if ch == "\\":
@@ -258,12 +268,14 @@ class RegexParser:
             if self._pos >= self._length:
                 raise RegexSyntaxError("Dangling escape character '\\' at end of pattern", esc_pos)
             escaped_char = self._advance()
-            return RegexNode(RegexNodeType.LITERAL, value=escaped_char)
+            return RegexNode(RegexNodeType.LITERAL, value=escaped_char, source_span=(esc_pos, self._pos))
 
         if ch == "ε":
+            pos = self._pos
             self._advance()
-            return RegexNode(RegexNodeType.EPSILON)
+            return RegexNode(RegexNodeType.EPSILON, source_span=(pos, self._pos))
 
         # Standard literal character
+        pos = self._pos
         self._advance()
-        return RegexNode(RegexNodeType.LITERAL, value=ch)
+        return RegexNode(RegexNodeType.LITERAL, value=ch, source_span=(pos, self._pos))

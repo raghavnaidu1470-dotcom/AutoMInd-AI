@@ -90,6 +90,44 @@ Try these patterns in the dashboard or via the API:
 
 ---
 
+## 🛡️ ReDoS Guard: Explainable Ambiguity Screening & Verified Repair
+
+AutoMind-AI now includes **ReDoS Guard**, an end-to-end module for diagnosing and repairing Regular Expression Denial of Service vulnerabilities:
+
+1. **Exact Ambiguity Analysis:** Implements Weber & Seidl (1991) product-automaton criteria over trimmed NFAs (Pair Graph for Exponential Ambiguity; Chained Cycle Product for Polynomial Ambiguity).
+2. **Empirical Sandboxed Validation:** Executes Python `re` in isolated subprocesses with hard timeouts across increasing attack string lengths.
+3. **3-Class Severity GNN Screening:** Fast $\mathcal{O}(1)$ neural screening (Linear, Polynomial, Exponential) on NFA graphs with 8 canonical node features and 4 edge features.
+4. **GNNExplainer Source Provenance Localization:** Maps critical edge and node attributions back to exact regex character spans via AST metadata provenance.
+5. **Language-Preserving Repair:** Rule-based algebraic rewrites mathematically verified for 100% language equivalence using Hopcroft Minimized DFA isomorphism.
+
+### Demo Vulnerable vs. Safe Regexes
+
+| Regular Expression | Risk Class | Offending Span | Attack String Template | Verified Repaired Regex |
+| :--- | :--- | :--- | :--- | :--- |
+| `(a+)+$` | **Exponential (EDA)** | `0-6: (a+)+$` | `(a)^k + !` | `a+$` (Verified Equivalent) |
+| `(a\|aa)+$` | **Exponential (EDA)** | `0-8: (a\|aa)+$` | `(a)^k + !` | `a+$` (Verified Equivalent) |
+| `(a*)*b` | **Exponential (EDA)** | `0-6: (a*)*b` | `(a)^k + !` | `a*b` (Verified Equivalent) |
+| `a*a*b` | **Polynomial (PDA)** | `0-5: a*a*b` | `(a)^k + !` | `a*b` (Verified Equivalent) |
+| `(a\|b)*abb` | **Linear (Safe)** | None | None | None (Already Safe) |
+
+### Quick Demo Commands
+
+```bash
+# Analyze ReDoS ambiguity via API
+curl -X POST http://localhost:8000/api/redos/analyze \
+  -H "Content-Type: application/json" \
+  -d '{"regex": "(a+)+$", "run_empirical": true}'
+
+# Suggest and verify language-equivalent repair
+curl -X POST http://localhost:8000/api/redos/repair \
+  -H "Content-Type: application/json" \
+  -d '{"regex": "(a+)+$", "benchmark_before_after": true}'
+```
+
+*For comprehensive evaluation metrics, detection tables, and theoretical proofs, see [`docs/redos_guard.md`](docs/redos_guard.md) and [`docs/design_rationale.md`](docs/design_rationale.md).*
+
+---
+
 ## ⚡ Getting Started
 
 ### Prerequisites

@@ -16,13 +16,15 @@ from .routes.health import router as health_router
 from .routes.automata import router as automata_router
 from .routes.simulation import router as simulation_router
 from .routes.xai import router as xai_router
+from .routes.redos import router as redos_router
 
 app = FastAPI(
     title="AutoMind AI API",
     description=(
         "Explainable Formal Language Recognition and Automata Analysis System. "
         "Provides REST endpoints for Regex-to-Automata conversion, state-by-state "
-        "simulation trace generation, and GNN / GNNExplainer / SHAP attributions."
+        "simulation trace generation, GNN / GNNExplainer / SHAP attributions, "
+        "and ReDoS Guard ambiguity screening & verified repair."
     ),
     version="0.1.0",
     docs_url="/docs",
@@ -43,6 +45,7 @@ app.include_router(health_router, prefix="/api")
 app.include_router(automata_router, prefix="/api")
 app.include_router(simulation_router, prefix="/api")
 app.include_router(xai_router, prefix="/api")
+app.include_router(redos_router, prefix="/api")
 
 
 @app.get("/")
