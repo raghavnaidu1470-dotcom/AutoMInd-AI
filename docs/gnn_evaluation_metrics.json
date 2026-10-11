@@ -1,0 +1,76 @@
+{
+  "train_samples": 1978,
+  "test_samples": 1222,
+  "test_accuracy": 0.8543,
+  "test_accuracy_ci95": [
+    0.8345,
+    0.8741
+  ],
+  "majority_class_baseline_accuracy": 0.329,
+  "graph_stats_logistic_regression_accuracy": 0.8061,
+  "per_class_metrics": {
+    "linear": {
+      "true_positive": 344,
+      "false_positive": 120,
+      "false_negative": 58,
+      "total_actual": 402,
+      "precision": 0.7414,
+      "recall": 0.8557,
+      "recall_ci95": [
+        0.8214,
+        0.8901
+      ],
+      "f1_score": 0.7945
+    },
+    "polynomial": {
+      "true_positive": 306,
+      "false_positive": 0,
+      "false_negative": 120,
+      "total_actual": 426,
+      "precision": 1.0,
+      "recall": 0.7183,
+      "recall_ci95": [
+        0.6756,
+        0.761
+      ],
+      "f1_score": 0.8361
+    },
+    "exponential": {
+      "true_positive": 394,
+      "false_positive": 58,
+      "false_negative": 0,
+      "total_actual": 394,
+      "precision": 0.8717,
+      "recall": 1.0,
+      "recall_ci95": [
+        1.0,
+        1.0
+      ],
+      "f1_score": 0.9314
+    }
+  },
+  "confusion_matrix": {
+    "linear": {
+      "linear": 344,
+      "polynomial": 0,
+      "exponential": 58
+    },
+    "polynomial": {
+      "linear": 120,
+      "polynomial": 306,
+      "exponential": 0
+    },
+    "exponential": {
+      "linear": 0,
+      "polynomial": 0,
+      "exponential": 394
+    }
+  },
+  "linear_false_positive_analysis": {
+    "linear_actual_samples": 402,
+    "linear_false_positives": 58,
+    "linear_false_positive_rate": 0.1443,
+    "note": "On held-out safe regexes, the GNN falsely classifies 58/402 (14.4%) as risky. This occurs because safe disjoint alternations contain cyclic graph structures that the GNN confuses with unbounded ambiguity. The GNN is positioned as an experimental explanation and screening aid, not an authoritative screen."
+  },
+  "model_path": "backend/redos_guard/gnn/weights/redos_gnn_best.pt"
+}

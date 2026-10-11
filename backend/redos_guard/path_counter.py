@@ -105,6 +105,8 @@ def fit_path_growth(max_paths: List[int]) -> AmbiguityRisk:
     """
     Fits constant, polynomial, or exponential growth curves to the sequence
     of maximum accepting path counts M_k across k=0..N.
+    Distinguishes finite ambiguity (bounded constant path count) from
+    polynomial growth (path counts grow with input length).
 
     Args:
         max_paths: List of M_k values for k=0..N.
@@ -112,7 +114,7 @@ def fit_path_growth(max_paths: List[int]) -> AmbiguityRisk:
     Returns:
         AmbiguityRisk: LINEAR, POLYNOMIAL, or EXPONENTIAL.
     """
-    non_zero = [v for v in max_paths if v > 0]
+    non_zero = [(i, v) for i, v in enumerate(max_paths) if v > 0]
     if not non_zero:
         return AmbiguityRisk.LINEAR
 
@@ -120,6 +122,7 @@ def fit_path_growth(max_paths: List[int]) -> AmbiguityRisk:
     if max_val <= 2:
         return AmbiguityRisk.LINEAR
 
+    # Check for exponential growth: rapid multiplication across steps
     ratios: List[float] = []
     for i in range(1, len(max_paths)):
         if max_paths[i - 1] > 0 and max_paths[i] > 0:
@@ -128,7 +131,13 @@ def fit_path_growth(max_paths: List[int]) -> AmbiguityRisk:
     if len(ratios) >= 2 and ratios[-1] >= 1.55 and max_val >= 8:
         return AmbiguityRisk.EXPONENTIAL
 
-    if max_val >= 3:
+    # Polynomial growth requires paths to increase with length k:
+    # A bounded finite ambiguity pattern (e.g. (b|(b|b))) has max_val >= 3 but paths drop to 0 or stay constant.
+    increasing_steps = sum(
+        1 for i in range(len(non_zero) - 1) if non_zero[i + 1][1] > non_zero[i][1]
+    )
+    if max_val >= 3 and increasing_steps >= 2 and non_zero[-1][1] >= 3:
         return AmbiguityRisk.POLYNOMIAL
 
     return AmbiguityRisk.LINEAR
+

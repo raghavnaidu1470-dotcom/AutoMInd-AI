@@ -44,8 +44,12 @@ class ReDoSAnalyzeResponse(BaseModel):
     offending_transitions: List[str] = []
     attack_string: Optional[Dict[str, str]] = None
     empirical_benchmark: Optional[Dict[str, Any]] = None
+    slowdown_confirmed: bool = False
+    status_label: str = "safe"
+    match_mode: Optional[str] = None
     execution_time_ms: float
     metrics: Dict[str, Any] = {}
+
 
 
 class ReDoSRepairRequest(BaseModel):
@@ -106,21 +110,34 @@ def analyze_regex(payload: ReDoSAnalyzeRequest):
 
         # 4. Empirical validation benchmark
         empirical_data = None
+        slowdown_confirmed = False
+        status_label = "safe"
+        match_mode = None
+
         if payload.run_empirical:
             bench_res = run_empirical_benchmark(
                 raw_regex,
                 attack=exact_res.attack_string,
-                repeats_list=[4, 8, 12, 16, 20, 24],
                 timeout_per_run_sec=0.4,
+                match_mode="auto",
             )
+            slowdown_confirmed = bench_res.slowdown_confirmed
+            status_label = bench_res.status_label
+            match_mode = bench_res.match_mode
             empirical_data = {
                 "empirical_risk": bench_res.empirical_risk.value,
                 "growth_ratio": bench_res.growth_ratio,
                 "max_duration_ms": bench_res.max_duration_ms,
                 "timed_out": bench_res.timed_out,
+                "slowdown_confirmed": bench_res.slowdown_confirmed,
+                "status_label": bench_res.status_label,
+                "match_mode": bench_res.match_mode,
+                "fitted_degree": bench_res.fitted_degree,
                 "summary": bench_res.summary,
                 "points": [p.model_dump() for p in bench_res.points],
             }
+        elif exact_res.is_vulnerable:
+            status_label = "structurally ambiguous only"
 
         combined_explanation = (
             expl_res.explanation
@@ -140,6 +157,9 @@ def analyze_regex(payload: ReDoSAnalyzeRequest):
             offending_transitions=exact_res.offending_transitions,
             attack_string=attack_dict,
             empirical_benchmark=empirical_data,
+            slowdown_confirmed=slowdown_confirmed,
+            status_label=status_label,
+            match_mode=match_mode,
             execution_time_ms=exact_res.execution_time_ms,
             metrics=exact_res.metrics,
         )
