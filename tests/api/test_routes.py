@@ -210,3 +210,87 @@ def test_simulation_limits_error_handling(mock_automaton_dict):
     assert resp.status_code == 400
     assert "exceeds maximum limit" in resp.json()["detail"]
 
+
+def test_regression_pipeline_long_repeated_regex():
+    """
+    Regression test for:
+    Regex: (a|b)*abb*abba
+    Candidate String: aabbabba
+
+    Verifies the complete pipeline flow across all three automaton representations:
+    1. /api/automata/parse produces valid NFA, DFA, and Minimized DFA without 500 error.
+    2. /api/simulation/run accurately evaluates the string trace and acceptance.
+    3. /api/xai/explain produces valid attributions without 500 error.
+    """
+    regex = "(a|b)*abb*abba"
+    input_str = "aabbabba"
+
+    # Stage 1: Parse
+    parse_resp = client.post("/api/automata/parse", json={"regex": regex})
+    assert parse_resp.status_code == 200, f"Parse failed with: {parse_resp.text}"
+    bundle = parse_resp.json()
+    assert bundle["regex"] == regex
+
+    for auto_key in ["nfa", "dfa", "minimized_dfa"]:
+        auto = bundle[auto_key]
+        assert len(auto["states"]) > 0
+
+        # Stage 2: Simulation
+        sim_resp = client.post("/api/simulation/run", json={"automaton": auto, "input_string": input_str})
+        assert sim_resp.status_code == 200, f"Simulation on {auto_key} failed: {sim_resp.text}"
+        sim_data = sim_resp.json()
+        assert sim_data["accepted"] is True
+        assert len(sim_data["steps"]) == len(input_str) + 1
+
+        # Stage 3: Explain with trace
+        exp_resp = client.post(
+            "/api/xai/explain",
+            json={"automaton": auto, "simulation_trace": sim_data, "input_string": input_str},
+        )
+        assert exp_resp.status_code == 200, f"XAI explain on {auto_key} failed: {exp_resp.text}"
+        exp_data = exp_resp.json()
+        assert "predicted_accepted" in exp_data
+        assert "confidence" in exp_data
+        assert "feature_attributions" in exp_data
+
+        # Stage 4: Explain without trace (auto-generation)
+        exp_notrace = client.post(
+            "/api/xai/explain",
+            json={"automaton": auto, "input_string": input_str},
+        )
+        assert exp_notrace.status_code == 200, f"XAI explain without trace failed: {exp_notrace.text}"
+
+
+def test_audit_all_quick_presets_full_flow():
+    """
+    Audits all 4 Quick Presets defined in the UI through the full end-to-end flow:
+    Parse -> Simulate -> Explain (all 3 tabs).
+    """
+    presets = [
+        {"regex": "(a|b)*abb", "string": "ababb"},
+        {"regex": "a*b+", "string": "aaabbb"},
+        {"regex": "(01)*101", "string": "0101101"},
+        {"regex": "(a|b)*a(a|b)", "string": "bab"},
+    ]
+
+    for p in presets:
+        reg = p["regex"]
+        s = p["string"]
+
+        parse_res = client.post("/api/automata/parse", json={"regex": reg})
+        assert parse_res.status_code == 200, f"Preset '{reg}' parse failed: {parse_res.text}"
+        bundle = parse_res.json()
+
+        for tab in ["nfa", "dfa", "minimized_dfa"]:
+            auto = bundle[tab]
+            sim_res = client.post("/api/simulation/run", json={"automaton": auto, "input_string": s})
+            assert sim_res.status_code == 200, f"Preset '{reg}' sim failed on {tab}: {sim_res.text}"
+            sim_data = sim_res.json()
+
+            exp_res = client.post(
+                "/api/xai/explain",
+                json={"automaton": auto, "simulation_trace": sim_data, "input_string": s},
+            )
+            assert exp_res.status_code == 200, f"Preset '{reg}' XAI explain failed on {tab}: {exp_res.text}"
+
+

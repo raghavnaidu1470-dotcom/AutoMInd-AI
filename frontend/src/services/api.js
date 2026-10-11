@@ -45,13 +45,9 @@ export const api = {
         body: JSON.stringify({ regex }),
       });
     } catch (networkErr) {
-      console.warn('Backend /api/automata/parse unreachable, using mock automata fallback:', networkErr.message);
-      return {
-        ...MOCK_AUTOMATA_BUNDLE,
-        regex,
-        isLive: false,
-        fallbackReason: networkErr.message,
-      };
+      const err = new Error(`Backend network error: Failed to reach ${BASE_URL}/automata/parse (${networkErr.message}). Ensure backend server is running.`);
+      err.isNetworkError = true;
+      throw err;
     }
 
     if (!res.ok) {
@@ -89,13 +85,9 @@ export const api = {
         }),
       });
     } catch (networkErr) {
-      console.warn('Backend /api/simulation/run unreachable, using mock simulation fallback:', networkErr.message);
-      return {
-        ...MOCK_SIMULATION_RESULT,
-        input_string: inputString,
-        isLive: false,
-        fallbackReason: networkErr.message,
-      };
+      const err = new Error(`Backend network error: Failed to reach ${BASE_URL}/simulation/run (${networkErr.message}).`);
+      err.isNetworkError = true;
+      throw err;
     }
 
     if (!res.ok) {
@@ -132,13 +124,9 @@ export const api = {
         }),
       });
     } catch (networkErr) {
-      console.warn('Backend /api/xai/explain unreachable, using mock explanation fallback:', networkErr.message);
-      return {
-        ...MOCK_XAI_EXPLANATION,
-        input_string: inputString,
-        isLive: false,
-        fallbackReason: networkErr.message,
-      };
+      const err = new Error(`Backend network error: Failed to reach ${BASE_URL}/xai/explain (${networkErr.message}).`);
+      err.isNetworkError = true;
+      throw err;
     }
 
     if (!res.ok) {

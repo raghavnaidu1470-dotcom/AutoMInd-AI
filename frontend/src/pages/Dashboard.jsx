@@ -66,9 +66,7 @@ export default function Dashboard() {
         if (err.isSyntaxError) {
           setSyntaxError(err.message);
         } else {
-          setErrorMessage(
-            `Pipeline error: ${err.message}. Showing safe fallback preview.`
-          );
+          setErrorMessage(`BACKEND ERROR: ${err.message}`);
         }
         setIsLiveMode(false);
       } finally {
@@ -116,13 +114,18 @@ export default function Dashboard() {
       const targetAuto = automataBundle?.[newTab] || automataBundle?.minimized_dfa || automataBundle?.dfa;
       if (targetAuto) {
         // Re-run simulation and explanation for selected diagram
-        api.runSimulation(targetAuto, inputString).then((sim) => {
-          setSimulationResult(sim);
-          setCurrentStepIndex(0);
-          api.getExplanation(targetAuto, sim, inputString).then((xai) => {
+        api.runSimulation(targetAuto, inputString)
+          .then((sim) => {
+            setSimulationResult(sim);
+            setCurrentStepIndex(0);
+            return api.getExplanation(targetAuto, sim, inputString);
+          })
+          .then((xai) => {
             setXaiExplanation(xai);
+          })
+          .catch((err) => {
+            setErrorMessage(`BACKEND ERROR: ${err.message}`);
           });
-        });
       }
     },
     [automataBundle, inputString]
@@ -146,27 +149,31 @@ export default function Dashboard() {
         {errorMessage && (
           <div
             id="status-alert-banner"
+            className="backend-error-banner"
             style={{
-              padding: '0.75rem 1.25rem',
+              padding: '0.85rem 1.25rem',
               borderRadius: 'var(--radius-md)',
-              background: 'rgba(244, 63, 94, 0.12)',
-              border: '1px solid rgba(244, 63, 94, 0.3)',
-              color: '#fda4af',
-              fontSize: '0.85rem',
+              background: 'rgba(239, 68, 68, 0.2)',
+              border: '2px solid rgba(239, 68, 68, 0.8)',
+              color: '#fecaca',
+              fontSize: '0.9rem',
+              fontWeight: 500,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
+              boxShadow: '0 4px 12px rgba(239, 68, 68, 0.15)',
             }}
           >
-            <span>⚠️ {errorMessage}</span>
+            <span>🚨 <strong>BACKEND ERROR:</strong> {errorMessage.replace(/^BACKEND ERROR:\s*/, '')}</span>
             <button
               onClick={() => setErrorMessage(null)}
               style={{
                 background: 'none',
                 border: 'none',
-                color: '#fda4af',
+                color: '#fecaca',
                 cursor: 'pointer',
                 fontWeight: 'bold',
+                fontSize: '1rem',
               }}
             >
               ✕
