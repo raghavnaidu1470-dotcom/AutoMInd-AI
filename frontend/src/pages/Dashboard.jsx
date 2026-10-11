@@ -4,6 +4,7 @@ import RegexInput from '../components/RegexInput';
 import AutomataViewer from '../components/AutomataViewer';
 import ExecutionStepper from '../components/ExecutionStepper';
 import XAIExplanationPanel from '../components/XAIExplanationPanel';
+import ReDoSGuardPanel from '../components/ReDoSGuardPanel';
 import { api } from '../services/api';
 import {
   MOCK_AUTOMATA_BUNDLE,
@@ -12,6 +13,7 @@ import {
 } from '../mock/mockData';
 
 export default function Dashboard() {
+  const [appMode, setAppMode] = useState('studio'); // 'studio' | 'redos'
   const [backendStatus, setBackendStatus] = useState(null);
   const [regex, setRegex] = useState('(a|b)*abb');
   const [inputString, setInputString] = useState('ababb');
@@ -216,45 +218,100 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* Top Control Bar */}
-        <RegexInput
-          regex={regex}
-          setRegex={setRegex}
-          inputString={inputString}
-          setInputString={setInputString}
-          onProcess={() => handleProcess()}
-          loading={loading}
-          syntaxError={syntaxError}
-          clearSyntaxError={() => setSyntaxError(null)}
-        />
-
-        {/* Step-by-Step String Execution Stepper */}
-        <ExecutionStepper
-          simulationResult={simulationResult}
-          inputString={inputString}
-          currentStepIndex={currentStepIndex}
-          setCurrentStepIndex={setCurrentStepIndex}
-        />
-
-        {/* Two-Column Visualization & XAI Grid */}
-        <div className="workspace-grid">
-          <AutomataViewer
-            automaton={currentAutomaton}
-            activeTab={activeTab}
-            setActiveTab={handleTabChange}
-            activeStateId={activeStateId}
-            activeTransition={activeTransition}
-            xaiExplanation={xaiExplanation}
-            showHeatmap={showHeatmap}
-            setShowHeatmap={setShowHeatmap}
-          />
-
-          <XAIExplanationPanel
-            xaiExplanation={xaiExplanation}
-            loading={loading}
-            isLiveMode={isLiveMode}
-          />
+        {/* Studio / ReDoS Guard Mode Switcher */}
+        <div
+          className="tabs-header"
+          style={{
+            marginTop: '0.5rem',
+            marginBottom: '1rem',
+            background: 'rgba(15, 23, 42, 0.4)',
+            padding: '0.5rem 0.75rem',
+            borderRadius: 'var(--radius-md)',
+            border: '1px solid var(--border-subtle)',
+          }}
+        >
+          <div className="tab-buttons">
+            <button
+              id="tab-btn-studio"
+              className={`tab-btn ${appMode === 'studio' ? 'active' : ''}`}
+              onClick={() => setAppMode('studio')}
+            >
+              🔬 Automata & XAI Studio
+            </button>
+            <button
+              id="tab-btn-redos"
+              className={`tab-btn ${appMode === 'redos' ? 'active' : ''}`}
+              onClick={() => setAppMode('redos')}
+              style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+            >
+              🛡️ ReDoS Guard
+              <span
+                style={{
+                  fontSize: '0.65rem',
+                  background: '#ef4444',
+                  color: '#fff',
+                  padding: '1px 6px',
+                  borderRadius: '9999px',
+                  fontWeight: 'bold',
+                }}
+              >
+                NEW
+              </span>
+            </button>
+          </div>
         </div>
+
+        {appMode === 'redos' ? (
+          <ReDoSGuardPanel
+            onLoadIntoStudio={(newRegex) => {
+              setRegex(newRegex);
+              setAppMode('studio');
+              handleProcess(newRegex);
+            }}
+          />
+        ) : (
+          <>
+            {/* Top Control Bar */}
+            <RegexInput
+              regex={regex}
+              setRegex={setRegex}
+              inputString={inputString}
+              setInputString={setInputString}
+              onProcess={() => handleProcess()}
+              loading={loading}
+              syntaxError={syntaxError}
+              clearSyntaxError={() => setSyntaxError(null)}
+            />
+
+            {/* Step-by-Step String Execution Stepper */}
+            <ExecutionStepper
+              simulationResult={simulationResult}
+              inputString={inputString}
+              currentStepIndex={currentStepIndex}
+              setCurrentStepIndex={setCurrentStepIndex}
+            />
+
+            {/* Two-Column Visualization & XAI Grid */}
+            <div className="workspace-grid">
+              <AutomataViewer
+                automaton={currentAutomaton}
+                activeTab={activeTab}
+                setActiveTab={handleTabChange}
+                activeStateId={activeStateId}
+                activeTransition={activeTransition}
+                xaiExplanation={xaiExplanation}
+                showHeatmap={showHeatmap}
+                setShowHeatmap={setShowHeatmap}
+              />
+
+              <XAIExplanationPanel
+                xaiExplanation={xaiExplanation}
+                loading={loading}
+                isLiveMode={isLiveMode}
+              />
+            </div>
+          </>
+        )}
       </main>
     </div>
   );
