@@ -251,6 +251,8 @@ class DFAMinimizer:
             state_count=len(states),
             transition_count=len(transitions),
             is_minimized=True,
+            has_start_anchor=dfa.metadata.has_start_anchor if dfa.metadata else False,
+            has_end_anchor=dfa.metadata.has_end_anchor if dfa.metadata else False,
             description="Constructed using Hopcroft's DFA Minimization Algorithm",
         )
 

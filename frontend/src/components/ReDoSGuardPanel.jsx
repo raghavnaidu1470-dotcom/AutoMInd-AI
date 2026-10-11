@@ -406,6 +406,24 @@ export default function ReDoSGuardPanel({ onLoadIntoStudio }) {
               <strong>Diagnosis:</strong> {analysisResult.explanation}
             </div>
 
+            {analysisResult.engine_nuance_note && (
+              <div
+                id="redos-engine-nuance-callout"
+                style={{
+                  padding: '0.6rem 0.8rem',
+                  background: 'rgba(59, 130, 246, 0.12)',
+                  border: '1px solid rgba(59, 130, 246, 0.4)',
+                  borderRadius: '6px',
+                  color: '#93c5fd',
+                  fontSize: '0.8rem',
+                  lineHeight: '1.4',
+                  marginBottom: '0.75rem',
+                }}
+              >
+                ℹ️ <strong>Engine Nuance:</strong> {analysisResult.engine_nuance_note}
+              </div>
+            )}
+
             <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
               Confidence: {(analysisResult.confidence * 100).toFixed(1)}% | States involved:{' '}
               {analysisResult.offending_states.length || 'None'} | Exact Time: {analysisResult.execution_time_ms}ms

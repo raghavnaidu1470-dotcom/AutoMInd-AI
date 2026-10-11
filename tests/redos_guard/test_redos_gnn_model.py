@@ -60,7 +60,38 @@ def test_build_redos_dataset():
     dataset = build_redos_dataset(limit=30)
     assert len(dataset) >= 20
     labels = {item["label"] for item in dataset}
-    # Dataset should contain all three risk classes
     assert 0 in labels  # linear
     assert 1 in labels  # polynomial
     assert 2 in labels  # exponential
+
+
+def test_no_family_or_template_overlap_in_splits():
+    """
+    Assert that the train/test splits have zero family overlap and zero
+    canonical template overlap (no test regex or trivial variable rename
+    of a test regex appears in training).
+    """
+    from backend.redos_guard.gnn.dataset import (
+        get_family_stratified_dataset,
+        extract_regex_template,
+    )
+
+    train_data, test_data = get_family_stratified_dataset()
+
+    train_families = {s["family"] for s in train_data}
+    test_families = {s["family"] for s in test_data}
+    family_overlap = train_families & test_families
+    assert len(family_overlap) == 0, f"Detected overlapping families: {family_overlap}"
+
+    train_templates = {s["template"] for s in train_data}
+    test_templates = {s["template"] for s in test_data}
+    template_overlap = train_templates & test_templates
+    assert len(template_overlap) == 0, f"Detected overlapping templates: {template_overlap}"
+
+    # Also verify that every individual test regex normalized template is absent from train templates
+    for test_item in test_data:
+        tmpl = extract_regex_template(test_item["regex"])
+        assert tmpl not in train_templates, (
+            f"Test pattern '{test_item['regex']}' (template '{tmpl}') "
+            f"has an identical structural template in the training set!"
+        )

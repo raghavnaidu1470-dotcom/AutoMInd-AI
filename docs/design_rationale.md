@@ -89,7 +89,7 @@ Executes Python's native `re` module in an isolated subprocess with a 500 ms har
 
 ### Stage 4: 3-Class Severity GNN
 Ingests NFA graph representations using canonical 8-dimensional node features (`is_start`, `is_accepting`, `in_degree`, `out_degree`, `in_cycle`, `scc_size`, `shared_symbol_out_degree`, `self_loop_count`) and 4-dimensional edge features (`is_epsilon`, `is_cycle_edge`, `source_scc_size`, `target_scc_size`).
-Trained on balanced synthetic and curated datasets, achieving 93.9% test accuracy and constant-time screening latency ($\approx 0.15$ ms) on large NFAs.
+Trained with strict regex family/template stratification (zero train/test template leakage). On large NFAs ($|V| \ge 35$), GNN inference evaluates with linear message passing $\mathcal{O}(|V| + |E|)$ ($\approx 1.0$–$1.7$ ms) compared to the $\mathcal{O}(|V|^2)$ pair-graph analyzer ($>500$ ms). For small NFAs ($|V| \le 12$), the exact analyzer is faster due to PyTorch tensor overhead.
 
 ### Stage 5: Explainable Localization (GNNExplainer)
 Optimizes a continuous edge mask $M \in [0, 1]^E$ that maximizes mutual information for the predicted risk class. Top-attributed transitions and states are dereferenced via Part 1 metadata to extract the exact regex substring and character range, rendering plain-language explanations in the UI.

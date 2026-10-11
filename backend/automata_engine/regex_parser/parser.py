@@ -13,8 +13,9 @@ Precedence (lowest to highest):
   4. Atoms: Literals, Epsilon (`ε` or `()`), Escapes `\x`, Grouping `(...)`
 """
 
+import string
 from enum import Enum
-from typing import Optional, List, Tuple
+from typing import Optional, List, Tuple, Set
 
 
 class RegexSyntaxError(ValueError):
@@ -61,6 +62,8 @@ class RegexNode:
         right: Optional["RegexNode"] = None,
         child: Optional["RegexNode"] = None,
         source_span: Optional[Tuple[int, int]] = None,
+        has_start_anchor: bool = False,
+        has_end_anchor: bool = False,
     ):
         self.type = node_type
         self.value = value
@@ -68,6 +71,8 @@ class RegexNode:
         self.right = right
         self.child = child
         self.source_span = source_span
+        self.has_start_anchor = has_start_anchor
+        self.has_end_anchor = has_end_anchor
 
     def __repr__(self) -> str:
         span_str = f", span={self.source_span}" if self.source_span is not None else ""
@@ -108,10 +113,101 @@ class RegexParser:
         self._pattern: str = ""
         self._pos: int = 0
         self._length: int = 0
+        self._offset: int = 0
+        self._bound_alphabet: Set[str] = set()
+
+    def _extract_bound_alphabet(self, pattern: str) -> Set[str]:
+        """Extracts character universe for wildcard '.' and negated classes."""
+        explicit: Set[str] = set()
+        special = set("()|*+?^$[]\\")
+        i = 0
+        while i < len(pattern):
+            if pattern[i] == "\\" and i + 1 < len(pattern):
+                i += 2
+            elif pattern[i] not in special:
+                explicit.add(pattern[i])
+                i += 1
+            else:
+                i += 1
+        base = set(string.ascii_lowercase[:6]) | {"0", "1", "_"}
+        return explicit | base
+
+    def _build_union_tree(self, chars: List[str], span: Optional[Tuple[int, int]] = None) -> RegexNode:
+        """Constructs balanced binary union tree for character sets."""
+        if not chars:
+            return RegexNode(RegexNodeType.EPSILON, source_span=span)
+        if len(chars) == 1:
+            return RegexNode(RegexNodeType.LITERAL, value=chars[0], source_span=span)
+        mid = len(chars) // 2
+        left = self._build_union_tree(chars[:mid], span=span)
+        right = self._build_union_tree(chars[mid:], span=span)
+        return RegexNode(RegexNodeType.UNION, left=left, right=right, source_span=span)
+
+    def _parse_character_class(self) -> RegexNode:
+        open_pos = self._pos
+        self._advance()  # consume '['
+        if self._pos >= self._length:
+            raise RegexSyntaxError("Unterminated character class '['", open_pos + self._offset)
+
+        negated = False
+        if self._peek() == "^":
+            negated = True
+            self._advance()
+
+        chars: Set[str] = set()
+        while self._pos < self._length and self._peek() != "]":
+            c = self._advance()
+            if c == "\\":
+                if self._pos >= self._length:
+                    raise RegexSyntaxError("Dangling escape inside character class", self._pos + self._offset)
+                esc = self._advance()
+                if esc == "d":
+                    chars.update(str(d) for d in range(10))
+                elif esc == "w":
+                    chars.update(string.ascii_letters + string.digits + "_")
+                elif esc == "s":
+                    chars.add(" ")
+                elif esc == "-":
+                    chars.add("-")
+                elif esc == "]":
+                    chars.add("]")
+                else:
+                    chars.add(esc)
+            elif self._peek() == "-" and self._pos + 1 < self._length and self._pattern[self._pos + 1] != "]":
+                self._advance()  # consume '-'
+                end_c = self._advance()
+                if end_c == "\\":
+                    if self._pos >= self._length:
+                        raise RegexSyntaxError("Dangling escape inside character class", self._pos + self._offset)
+                    end_c = self._advance()
+                if ord(c) > ord(end_c):
+                    raise RegexSyntaxError(f"Invalid character class range '{c}-{end_c}'", self._pos + self._offset)
+                for code in range(ord(c), ord(end_c) + 1):
+                    chars.add(chr(code))
+            else:
+                chars.add(c)
+
+        if self._pos >= self._length or self._peek() != "]":
+            raise RegexSyntaxError("Unterminated character class '['", open_pos + self._offset)
+
+        self._advance()  # consume ']'
+        span = (open_pos + self._offset, self._pos + self._offset)
+
+        if negated:
+            neg_universe = set(self._bound_alphabet) | set(string.ascii_lowercase) | set(string.digits) | {"_"}
+            final_chars = sorted(list(neg_universe - chars))
+            if not final_chars:
+                final_chars = ["_"]
+        else:
+            final_chars = sorted(list(chars))
+
+        return self._build_union_tree(final_chars, span=span)
 
     def parse(self, pattern: str) -> RegexNode:
         """
         Parses a regular expression pattern into an AST.
+        Supports boundary anchors (^, $), character classes ([a-z], [^a]),
+        escaped character shorthands (\\d, \\w, \\s), and dot (.) over bounded alphabet.
 
         Args:
             pattern (str): The regular expression pattern (e.g., "(a|b)*abb").
@@ -120,23 +216,58 @@ class RegexParser:
             RegexNode: Root of the parsed AST.
 
         Raises:
-            RegexSyntaxError: If the pattern is malformed.
+            RegexSyntaxError: If the pattern is malformed or uses unsupported syntax.
         """
         if pattern is None or len(pattern) == 0:
             raise RegexSyntaxError("Regex pattern cannot be empty.", 0)
 
-        self._pattern = pattern
+        has_start = False
+        has_end = False
+        start_idx = 0
+        end_idx = len(pattern)
+
+        if pattern.startswith("^"):
+            has_start = True
+            start_idx = 1
+
+        if pattern.endswith("$"):
+            # Check not escaped \\$
+            num_bs = 0
+            k = len(pattern) - 2
+            while k >= start_idx and pattern[k] == "\\":
+                num_bs += 1
+                k -= 1
+            if num_bs % 2 == 0:
+                has_end = True
+                end_idx = len(pattern) - 1
+
+        inner = pattern[start_idx:end_idx]
+        if inner == "":
+            root = RegexNode(
+                RegexNodeType.EPSILON,
+                source_span=(0, len(pattern)),
+                has_start_anchor=has_start,
+                has_end_anchor=has_end,
+            )
+            return root
+
+        self._pattern = inner
         self._pos = 0
-        self._length = len(pattern)
+        self._length = len(inner)
+        self._offset = start_idx
+        self._bound_alphabet = self._extract_bound_alphabet(pattern)
 
         root = self._parse_expression()
 
         if self._pos < self._length:
             char = self._peek()
             if char == ")":
-                raise RegexSyntaxError("Unexpected closing parenthesis ')'", self._pos)
-            raise RegexSyntaxError(f"Unexpected character '{char}'", self._pos)
+                raise RegexSyntaxError("Unexpected closing parenthesis ')'", self._pos + self._offset)
+            raise RegexSyntaxError(f"Unexpected character '{char}'", self._pos + self._offset)
 
+        root.has_start_anchor = has_start
+        root.has_end_anchor = has_end
+        root.source_span = (0, len(pattern))
         return root
 
     def _peek(self) -> Optional[str]:
@@ -225,57 +356,97 @@ class RegexParser:
 
     def _parse_atom(self) -> RegexNode:
         """
-        atom -> '(' expression? ')' | '\' char | 'ε' | literal
+        atom -> '(' expression? ')' | '[' class ']' | '.' | '\\' char | 'ε' | literal
         """
         if self._pos >= self._length:
-            raise RegexSyntaxError("Unexpected end of pattern", self._pos)
+            raise RegexSyntaxError("Unexpected end of pattern", self._pos + self._offset)
 
         ch = self._peek()
 
         if ch in ("*", "+", "?"):
-            raise RegexSyntaxError(f"Dangling operator '{ch}' with no preceding target", self._pos)
+            raise RegexSyntaxError(f"Dangling operator '{ch}' with no preceding target", self._pos + self._offset)
 
         if ch == "|":
-            raise RegexSyntaxError("Empty alternation branch before '|'", self._pos)
+            raise RegexSyntaxError("Empty alternation branch before '|'", self._pos + self._offset)
 
         if ch == ")":
-            raise RegexSyntaxError("Unexpected closing parenthesis ')'", self._pos)
+            raise RegexSyntaxError("Unexpected closing parenthesis ')'", self._pos + self._offset)
+
+        if ch in ("^", "$"):
+            raise RegexSyntaxError(
+                f"Anchor '{ch}' is only supported at pattern boundaries (start/end).",
+                self._pos + self._offset,
+            )
+
+        if ch == "[":
+            return self._parse_character_class()
+
+        if ch == ".":
+            pos = self._pos
+            self._advance()
+            return self._build_union_tree(
+                sorted(list(self._bound_alphabet)),
+                span=(pos + self._offset, self._pos + self._offset),
+            )
 
         if ch == "(":
             open_pos = self._pos
             self._advance()  # consume '('
 
             if self._pos >= self._length:
-                raise RegexSyntaxError("Unbalanced parenthesis: missing ')'", open_pos)
+                raise RegexSyntaxError("Unbalanced parenthesis: missing ')'", open_pos + self._offset)
+
+            if self._peek() == "?":
+                raise RegexSyntaxError(
+                    "Lookaround assertions and non-capturing groups '(?...)' are not supported in regular automata.",
+                    open_pos + self._offset,
+                )
 
             # Check for empty parentheses `()` -> Epsilon
             if self._peek() == ")":
                 self._advance()  # consume ')'
-                return RegexNode(RegexNodeType.EPSILON, source_span=(open_pos, self._pos))
+                return RegexNode(RegexNodeType.EPSILON, source_span=(open_pos + self._offset, self._pos + self._offset))
 
             expr = self._parse_expression()
 
             if self._pos >= self._length or self._peek() != ")":
-                raise RegexSyntaxError("Unbalanced parenthesis: missing ')'", open_pos)
+                raise RegexSyntaxError("Unbalanced parenthesis: missing ')'", open_pos + self._offset)
 
             self._advance()  # consume ')'
-            expr.source_span = (open_pos, self._pos)
+            expr.source_span = (open_pos + self._offset, self._pos + self._offset)
             return expr
 
         if ch == "\\":
             esc_pos = self._pos
             self._advance()  # consume '\'
             if self._pos >= self._length:
-                raise RegexSyntaxError("Dangling escape character '\\' at end of pattern", esc_pos)
+                raise RegexSyntaxError("Dangling escape character '\\' at end of pattern", esc_pos + self._offset)
             escaped_char = self._advance()
-            return RegexNode(RegexNodeType.LITERAL, value=escaped_char, source_span=(esc_pos, self._pos))
+            span = (esc_pos + self._offset, self._pos + self._offset)
+
+            if escaped_char in "123456789":
+                raise RegexSyntaxError(
+                    f"Backreferences '\\{escaped_char}' are not supported in regular automata.",
+                    esc_pos + self._offset,
+                )
+            if escaped_char == "d":
+                return self._build_union_tree([str(d) for d in range(10)], span=span)
+            if escaped_char == "w":
+                return self._build_union_tree(
+                    sorted(list(string.ascii_letters + string.digits + "_")),
+                    span=span,
+                )
+            if escaped_char == "s":
+                return RegexNode(RegexNodeType.LITERAL, value=" ", source_span=span)
+
+            return RegexNode(RegexNodeType.LITERAL, value=escaped_char, source_span=span)
 
         if ch == "ε":
             pos = self._pos
             self._advance()
-            return RegexNode(RegexNodeType.EPSILON, source_span=(pos, self._pos))
+            return RegexNode(RegexNodeType.EPSILON, source_span=(pos + self._offset, self._pos + self._offset))
 
         # Standard literal character
         pos = self._pos
         self._advance()
-        return RegexNode(RegexNodeType.LITERAL, value=ch, source_span=(pos, self._pos))
+        return RegexNode(RegexNodeType.LITERAL, value=ch, source_span=(pos + self._offset, self._pos + self._offset))

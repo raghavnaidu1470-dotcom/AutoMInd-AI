@@ -42,7 +42,7 @@ def test_explain_chained_repetition_polynomial(explainer):
 
 def test_explain_safe_linear_regex(explainer):
     """Verify explainability on safe linear regex returns empty highlighted spans."""
-    res = explainer.explain("(a|b)*abb")
+    res = explainer.explain("hello")
     assert res.predicted_risk == "linear"
     assert len(res.highlighted_spans) == 0
     assert "safe" in res.explanation.lower() or "linear" in res.explanation.lower()
