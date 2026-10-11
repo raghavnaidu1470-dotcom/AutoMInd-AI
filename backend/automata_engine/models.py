@@ -9,8 +9,16 @@ transitions, states, execution traces, and simulation outputs according to
 the canonical schema documented in `docs/json_schema.md`.
 """
 
+import sys
 from typing import List, Dict, Optional, Any, Union
 from pydantic import BaseModel, Field
+
+# Alias module names to prevent duplicate Pydantic type registration
+# if imported via different package roots (backend.automata_engine vs automata_engine)
+if "backend.automata_engine.models" not in sys.modules:
+    sys.modules["backend.automata_engine.models"] = sys.modules[__name__]
+if "automata_engine.models" not in sys.modules:
+    sys.modules["automata_engine.models"] = sys.modules[__name__]
 
 
 class State(BaseModel):
@@ -33,6 +41,7 @@ class Transition(BaseModel):
     from_state: str = Field(..., description="Source state ID")
     to_state: str = Field(..., description="Target state ID")
     symbol: str = Field(..., description="Alphabet symbol or 'ε' for epsilon transition")
+    metadata: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Custom metadata, e.g. source span")
 
 
 class AutomatonMetadata(BaseModel):
@@ -43,6 +52,8 @@ class AutomatonMetadata(BaseModel):
     state_count: Optional[int] = Field(None, description="Total number of states")
     transition_count: Optional[int] = Field(None, description="Total number of transitions")
     is_minimized: Optional[bool] = Field(False, description="True if DFA has undergone minimization")
+    has_start_anchor: Optional[bool] = Field(False, description="True if regex is left-anchored with '^'")
+    has_end_anchor: Optional[bool] = Field(False, description="True if regex is right-anchored with '$'")
     description: Optional[str] = Field(None, description="Free-text description or notes")
 
 

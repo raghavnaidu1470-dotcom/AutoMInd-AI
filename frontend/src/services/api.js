@@ -45,13 +45,9 @@ export const api = {
         body: JSON.stringify({ regex }),
       });
     } catch (networkErr) {
-      console.warn('Backend /api/automata/parse unreachable, using mock automata fallback:', networkErr.message);
-      return {
-        ...MOCK_AUTOMATA_BUNDLE,
-        regex,
-        isLive: false,
-        fallbackReason: networkErr.message,
-      };
+      const err = new Error(`Backend network error: Failed to reach ${BASE_URL}/automata/parse (${networkErr.message}). Ensure backend server is running.`);
+      err.isNetworkError = true;
+      throw err;
     }
 
     if (!res.ok) {
@@ -89,13 +85,9 @@ export const api = {
         }),
       });
     } catch (networkErr) {
-      console.warn('Backend /api/simulation/run unreachable, using mock simulation fallback:', networkErr.message);
-      return {
-        ...MOCK_SIMULATION_RESULT,
-        input_string: inputString,
-        isLive: false,
-        fallbackReason: networkErr.message,
-      };
+      const err = new Error(`Backend network error: Failed to reach ${BASE_URL}/simulation/run (${networkErr.message}).`);
+      err.isNetworkError = true;
+      throw err;
     }
 
     if (!res.ok) {
@@ -132,13 +124,87 @@ export const api = {
         }),
       });
     } catch (networkErr) {
-      console.warn('Backend /api/xai/explain unreachable, using mock explanation fallback:', networkErr.message);
-      return {
-        ...MOCK_XAI_EXPLANATION,
-        input_string: inputString,
-        isLive: false,
-        fallbackReason: networkErr.message,
-      };
+      const err = new Error(`Backend network error: Failed to reach ${BASE_URL}/xai/explain (${networkErr.message}).`);
+      err.isNetworkError = true;
+      throw err;
+    }
+
+    if (!res.ok) {
+      let detailMsg = `Server returned ${res.status}`;
+      try {
+        const errJson = await res.json();
+        detailMsg = errJson.detail || detailMsg;
+      } catch (e) {
+        const text = await res.text().catch(() => '');
+        if (text) detailMsg = text;
+      }
+      const error = new Error(detailMsg);
+      error.status = res.status;
+      throw error;
+    }
+
+    const data = await res.json();
+    return { ...data, isLive: true };
+  },
+
+  /**
+   * ReDoS Guard: Analyzes regular expression ambiguity, GNN risk severity,
+   * source span localization, and empirical timing benchmark.
+   */
+  async analyzeReDoS(regex, runEmpirical = true) {
+    let res;
+    try {
+      res = await fetch(`${BASE_URL}/redos/analyze`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          regex,
+          run_empirical: runEmpirical,
+        }),
+      });
+    } catch (networkErr) {
+      const err = new Error(`Backend network error: Failed to reach ${BASE_URL}/redos/analyze (${networkErr.message}).`);
+      err.isNetworkError = true;
+      throw err;
+    }
+
+    if (!res.ok) {
+      let detailMsg = `Server returned ${res.status}`;
+      try {
+        const errJson = await res.json();
+        detailMsg = errJson.detail || detailMsg;
+      } catch (e) {
+        const text = await res.text().catch(() => '');
+        if (text) detailMsg = text;
+      }
+      const error = new Error(detailMsg);
+      error.status = res.status;
+      throw error;
+    }
+
+    const data = await res.json();
+    return { ...data, isLive: true };
+  },
+
+  /**
+   * ReDoS Guard: Synthesizes language-equivalent safe repairs with verified
+   * DFA isomorphism and before/after benchmark comparisons.
+   */
+  async repairReDoS(regex, benchmarkBeforeAfter = true) {
+    let res;
+    try {
+      res = await fetch(`${BASE_URL}/redos/repair`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          regex,
+          benchmark_before_after: benchmarkBeforeAfter,
+        }),
+      });
+    } catch (networkErr) {
+      const err = new Error(`Backend network error: Failed to reach ${BASE_URL}/redos/repair (${networkErr.message}).`);
+      err.isNetworkError = true;
+      throw err;
     }
 
     if (!res.ok) {

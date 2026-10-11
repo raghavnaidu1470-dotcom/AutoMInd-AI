@@ -32,6 +32,10 @@ class AutomataEngine:
         self.dfa_converter = DFAConverter()
         self.dfa_minimizer = DFAMinimizer()
         self.simulator = AutomataSimulator()
+    def build_nfa(self, regex: str) -> Automaton:
+        """Parses regex and builds NFA via Thompson's construction."""
+        ast = self.parser.parse(regex)
+        return self.nfa_builder.build_from_ast(ast, regex_str=regex)
 
     def build_all(self, regex: str) -> Dict[str, Any]:
         """

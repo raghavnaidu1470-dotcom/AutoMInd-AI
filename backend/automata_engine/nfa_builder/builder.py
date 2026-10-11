@@ -45,18 +45,26 @@ class NFABuilder:
 
     def __init__(self):
         self._state_counter: int = 0
-        self._transitions: List[Tuple[str, str, str]] = []
+        self._transitions: List[Tuple[str, str, str, Optional[Tuple[int, int]]]] = []
+        self._state_spans: Dict[str, Optional[Tuple[int, int]]] = {}
         self._alphabet: Set[str] = set()
 
-    def _new_state_id(self) -> str:
+    def _new_state_id(self, source_span: Optional[Tuple[int, int]] = None) -> str:
         """Generates a fresh unique state identifier deterministically (q0, q1, ...)."""
         sid = f"q{self._state_counter}"
         self._state_counter += 1
+        self._state_spans[sid] = source_span
         return sid
 
-    def _add_transition(self, from_state: str, to_state: str, symbol: str) -> None:
+    def _add_transition(
+        self,
+        from_state: str,
+        to_state: str,
+        symbol: str,
+        source_span: Optional[Tuple[int, int]] = None,
+    ) -> None:
         """Records a directed transition."""
-        self._transitions.append((from_state, to_state, symbol))
+        self._transitions.append((from_state, to_state, symbol, source_span))
         if symbol != "ε" and symbol != "":
             self._alphabet.add(symbol)
 
@@ -77,6 +85,7 @@ class NFABuilder:
         # Reset builder state
         self._state_counter = 0
         self._transitions = []
+        self._state_spans = {}
         self._alphabet = set()
 
         root_fragment = self._build_fragment(ast)
@@ -85,33 +94,42 @@ class NFABuilder:
         states: List[State] = []
         for i in range(self._state_counter):
             sid = f"q{i}"
+            span = self._state_spans.get(sid)
+            meta: Dict[str, Any] = {}
+            if span is not None:
+                meta["source_span"] = list(span)
             states.append(
                 State(
                     id=sid,
                     label=sid,
                     is_start=(sid == root_fragment.start_state),
                     is_accepting=(sid == root_fragment.accept_state),
-                    metadata={},
+                    metadata=meta,
                 )
             )
 
         # Sort transitions deterministically by (from_state_idx, symbol, to_state_idx)
-        def _trans_sort_key(t: Tuple[str, str, str]):
+        def _trans_sort_key(t: Tuple[str, str, str, Optional[Tuple[int, int]]]):
             from_idx = int(t[0][1:]) if t[0].startswith("q") and t[0][1:].isdigit() else t[0]
             to_idx = int(t[1][1:]) if t[1].startswith("q") and t[1][1:].isdigit() else t[1]
             return (from_idx, t[2], to_idx)
 
         sorted_raw_transitions = sorted(self._transitions, key=_trans_sort_key)
 
-        transitions: List[Transition] = [
-            Transition(
-                id=f"nt{idx}",
-                from_state=u,
-                to_state=v,
-                symbol=sym,
+        transitions: List[Transition] = []
+        for idx, (u, v, sym, span) in enumerate(sorted_raw_transitions):
+            trans_meta: Dict[str, Any] = {}
+            if span is not None:
+                trans_meta["source_span"] = list(span)
+            transitions.append(
+                Transition(
+                    id=f"nt{idx}",
+                    from_state=u,
+                    to_state=v,
+                    symbol=sym,
+                    metadata=trans_meta,
+                )
             )
-            for idx, (u, v, sym) in enumerate(sorted_raw_transitions)
-        ]
 
         sorted_alphabet = sorted(list(self._alphabet))
         pattern_str = regex_str or ""
@@ -121,6 +139,8 @@ class NFABuilder:
             state_count=len(states),
             transition_count=len(transitions),
             is_minimized=False,
+            has_start_anchor=getattr(ast, "has_start_anchor", False),
+            has_end_anchor=getattr(ast, "has_end_anchor", False),
             description="Constructed using Thompson's Algorithm",
         )
 
@@ -138,65 +158,67 @@ class NFABuilder:
     def _build_fragment(self, node: RegexNode) -> _NFAFragment:
         """Recursively builds NFA fragments for AST nodes."""
         if node.type == RegexNodeType.LITERAL:
-            start = self._new_state_id()
-            accept = self._new_state_id()
-            self._add_transition(start, accept, node.value if node.value is not None else "")
+            start = self._new_state_id(node.source_span)
+            accept = self._new_state_id(node.source_span)
+            self._add_transition(
+                start, accept, node.value if node.value is not None else "", source_span=node.source_span
+            )
             return _NFAFragment(start, accept)
 
         if node.type == RegexNodeType.EPSILON:
-            start = self._new_state_id()
-            accept = self._new_state_id()
-            self._add_transition(start, accept, "ε")
+            start = self._new_state_id(node.source_span)
+            accept = self._new_state_id(node.source_span)
+            self._add_transition(start, accept, "ε", source_span=node.source_span)
             return _NFAFragment(start, accept)
 
         if node.type == RegexNodeType.CONCAT:
             frag1 = self._build_fragment(node.left)
             frag2 = self._build_fragment(node.right)
             # Connect frag1 accept to frag2 start via epsilon
-            self._add_transition(frag1.accept_state, frag2.start_state, "ε")
+            self._add_transition(frag1.accept_state, frag2.start_state, "ε", source_span=node.source_span)
             return _NFAFragment(frag1.start_state, frag2.accept_state)
 
         if node.type == RegexNodeType.UNION:
-            start = self._new_state_id()
+            start = self._new_state_id(node.source_span)
             frag1 = self._build_fragment(node.left)
             frag2 = self._build_fragment(node.right)
-            accept = self._new_state_id()
+            accept = self._new_state_id(node.source_span)
 
-            self._add_transition(start, frag1.start_state, "ε")
-            self._add_transition(start, frag2.start_state, "ε")
-            self._add_transition(frag1.accept_state, accept, "ε")
-            self._add_transition(frag2.accept_state, accept, "ε")
+            self._add_transition(start, frag1.start_state, "ε", source_span=node.source_span)
+            self._add_transition(start, frag2.start_state, "ε", source_span=node.source_span)
+            self._add_transition(frag1.accept_state, accept, "ε", source_span=node.source_span)
+            self._add_transition(frag2.accept_state, accept, "ε", source_span=node.source_span)
             return _NFAFragment(start, accept)
 
         if node.type == RegexNodeType.STAR:
-            start = self._new_state_id()
+            start = self._new_state_id(node.source_span)
             child_frag = self._build_fragment(node.child)
-            accept = self._new_state_id()
+            accept = self._new_state_id(node.source_span)
 
-            self._add_transition(start, child_frag.start_state, "ε")
-            self._add_transition(start, accept, "ε")
-            self._add_transition(child_frag.accept_state, child_frag.start_state, "ε")
-            self._add_transition(child_frag.accept_state, accept, "ε")
+            self._add_transition(start, child_frag.start_state, "ε", source_span=node.source_span)
+            self._add_transition(start, accept, "ε", source_span=node.source_span)
+            self._add_transition(child_frag.accept_state, child_frag.start_state, "ε", source_span=node.source_span)
+            self._add_transition(child_frag.accept_state, accept, "ε", source_span=node.source_span)
             return _NFAFragment(start, accept)
 
         if node.type == RegexNodeType.PLUS:
-            start = self._new_state_id()
+            start = self._new_state_id(node.source_span)
             child_frag = self._build_fragment(node.child)
-            accept = self._new_state_id()
+            accept = self._new_state_id(node.source_span)
 
-            self._add_transition(start, child_frag.start_state, "ε")
-            self._add_transition(child_frag.accept_state, child_frag.start_state, "ε")
-            self._add_transition(child_frag.accept_state, accept, "ε")
+            self._add_transition(start, child_frag.start_state, "ε", source_span=node.source_span)
+            self._add_transition(child_frag.accept_state, child_frag.start_state, "ε", source_span=node.source_span)
+            self._add_transition(child_frag.accept_state, accept, "ε", source_span=node.source_span)
             return _NFAFragment(start, accept)
 
         if node.type == RegexNodeType.QUESTION:
-            start = self._new_state_id()
+            start = self._new_state_id(node.source_span)
             child_frag = self._build_fragment(node.child)
-            accept = self._new_state_id()
+            accept = self._new_state_id(node.source_span)
 
-            self._add_transition(start, child_frag.start_state, "ε")
-            self._add_transition(start, accept, "ε")
-            self._add_transition(child_frag.accept_state, accept, "ε")
+            self._add_transition(start, child_frag.start_state, "ε", source_span=node.source_span)
+            self._add_transition(start, accept, "ε", source_span=node.source_span)
+            self._add_transition(child_frag.accept_state, accept, "ε", source_span=node.source_span)
             return _NFAFragment(start, accept)
 
         raise ValueError(f"Unsupported RegexNodeType: {node.type}")

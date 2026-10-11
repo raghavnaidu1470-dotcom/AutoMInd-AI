@@ -4,6 +4,7 @@ import RegexInput from '../components/RegexInput';
 import AutomataViewer from '../components/AutomataViewer';
 import ExecutionStepper from '../components/ExecutionStepper';
 import XAIExplanationPanel from '../components/XAIExplanationPanel';
+import ReDoSGuardPanel from '../components/ReDoSGuardPanel';
 import { api } from '../services/api';
 import {
   MOCK_AUTOMATA_BUNDLE,
@@ -12,6 +13,7 @@ import {
 } from '../mock/mockData';
 
 export default function Dashboard() {
+  const [appMode, setAppMode] = useState('studio'); // 'studio' | 'redos'
   const [backendStatus, setBackendStatus] = useState(null);
   const [regex, setRegex] = useState('(a|b)*abb');
   const [inputString, setInputString] = useState('ababb');
@@ -66,9 +68,7 @@ export default function Dashboard() {
         if (err.isSyntaxError) {
           setSyntaxError(err.message);
         } else {
-          setErrorMessage(
-            `Pipeline error: ${err.message}. Showing safe fallback preview.`
-          );
+          setErrorMessage(`BACKEND ERROR: ${err.message}`);
         }
         setIsLiveMode(false);
       } finally {
@@ -116,13 +116,18 @@ export default function Dashboard() {
       const targetAuto = automataBundle?.[newTab] || automataBundle?.minimized_dfa || automataBundle?.dfa;
       if (targetAuto) {
         // Re-run simulation and explanation for selected diagram
-        api.runSimulation(targetAuto, inputString).then((sim) => {
-          setSimulationResult(sim);
-          setCurrentStepIndex(0);
-          api.getExplanation(targetAuto, sim, inputString).then((xai) => {
+        api.runSimulation(targetAuto, inputString)
+          .then((sim) => {
+            setSimulationResult(sim);
+            setCurrentStepIndex(0);
+            return api.getExplanation(targetAuto, sim, inputString);
+          })
+          .then((xai) => {
             setXaiExplanation(xai);
+          })
+          .catch((err) => {
+            setErrorMessage(`BACKEND ERROR: ${err.message}`);
           });
-        });
       }
     },
     [automataBundle, inputString]
@@ -146,27 +151,31 @@ export default function Dashboard() {
         {errorMessage && (
           <div
             id="status-alert-banner"
+            className="backend-error-banner"
             style={{
-              padding: '0.75rem 1.25rem',
+              padding: '0.85rem 1.25rem',
               borderRadius: 'var(--radius-md)',
-              background: 'rgba(244, 63, 94, 0.12)',
-              border: '1px solid rgba(244, 63, 94, 0.3)',
-              color: '#fda4af',
-              fontSize: '0.85rem',
+              background: 'rgba(239, 68, 68, 0.2)',
+              border: '2px solid rgba(239, 68, 68, 0.8)',
+              color: '#fecaca',
+              fontSize: '0.9rem',
+              fontWeight: 500,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
+              boxShadow: '0 4px 12px rgba(239, 68, 68, 0.15)',
             }}
           >
-            <span>⚠️ {errorMessage}</span>
+            <span>🚨 <strong>BACKEND ERROR:</strong> {errorMessage.replace(/^BACKEND ERROR:\s*/, '')}</span>
             <button
               onClick={() => setErrorMessage(null)}
               style={{
                 background: 'none',
                 border: 'none',
-                color: '#fda4af',
+                color: '#fecaca',
                 cursor: 'pointer',
                 fontWeight: 'bold',
+                fontSize: '1rem',
               }}
             >
               ✕
@@ -209,45 +218,100 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* Top Control Bar */}
-        <RegexInput
-          regex={regex}
-          setRegex={setRegex}
-          inputString={inputString}
-          setInputString={setInputString}
-          onProcess={() => handleProcess()}
-          loading={loading}
-          syntaxError={syntaxError}
-          clearSyntaxError={() => setSyntaxError(null)}
-        />
-
-        {/* Step-by-Step String Execution Stepper */}
-        <ExecutionStepper
-          simulationResult={simulationResult}
-          inputString={inputString}
-          currentStepIndex={currentStepIndex}
-          setCurrentStepIndex={setCurrentStepIndex}
-        />
-
-        {/* Two-Column Visualization & XAI Grid */}
-        <div className="workspace-grid">
-          <AutomataViewer
-            automaton={currentAutomaton}
-            activeTab={activeTab}
-            setActiveTab={handleTabChange}
-            activeStateId={activeStateId}
-            activeTransition={activeTransition}
-            xaiExplanation={xaiExplanation}
-            showHeatmap={showHeatmap}
-            setShowHeatmap={setShowHeatmap}
-          />
-
-          <XAIExplanationPanel
-            xaiExplanation={xaiExplanation}
-            loading={loading}
-            isLiveMode={isLiveMode}
-          />
+        {/* Studio / ReDoS Guard Mode Switcher */}
+        <div
+          className="tabs-header"
+          style={{
+            marginTop: '0.5rem',
+            marginBottom: '1rem',
+            background: 'rgba(15, 23, 42, 0.4)',
+            padding: '0.5rem 0.75rem',
+            borderRadius: 'var(--radius-md)',
+            border: '1px solid var(--border-subtle)',
+          }}
+        >
+          <div className="tab-buttons">
+            <button
+              id="tab-btn-studio"
+              className={`tab-btn ${appMode === 'studio' ? 'active' : ''}`}
+              onClick={() => setAppMode('studio')}
+            >
+              🔬 Automata & XAI Studio
+            </button>
+            <button
+              id="tab-btn-redos"
+              className={`tab-btn ${appMode === 'redos' ? 'active' : ''}`}
+              onClick={() => setAppMode('redos')}
+              style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+            >
+              🛡️ ReDoS Guard
+              <span
+                style={{
+                  fontSize: '0.65rem',
+                  background: '#ef4444',
+                  color: '#fff',
+                  padding: '1px 6px',
+                  borderRadius: '9999px',
+                  fontWeight: 'bold',
+                }}
+              >
+                NEW
+              </span>
+            </button>
+          </div>
         </div>
+
+        {appMode === 'redos' ? (
+          <ReDoSGuardPanel
+            onLoadIntoStudio={(newRegex) => {
+              setRegex(newRegex);
+              setAppMode('studio');
+              handleProcess(newRegex);
+            }}
+          />
+        ) : (
+          <>
+            {/* Top Control Bar */}
+            <RegexInput
+              regex={regex}
+              setRegex={setRegex}
+              inputString={inputString}
+              setInputString={setInputString}
+              onProcess={() => handleProcess()}
+              loading={loading}
+              syntaxError={syntaxError}
+              clearSyntaxError={() => setSyntaxError(null)}
+            />
+
+            {/* Step-by-Step String Execution Stepper */}
+            <ExecutionStepper
+              simulationResult={simulationResult}
+              inputString={inputString}
+              currentStepIndex={currentStepIndex}
+              setCurrentStepIndex={setCurrentStepIndex}
+            />
+
+            {/* Two-Column Visualization & XAI Grid */}
+            <div className="workspace-grid">
+              <AutomataViewer
+                automaton={currentAutomaton}
+                activeTab={activeTab}
+                setActiveTab={handleTabChange}
+                activeStateId={activeStateId}
+                activeTransition={activeTransition}
+                xaiExplanation={xaiExplanation}
+                showHeatmap={showHeatmap}
+                setShowHeatmap={setShowHeatmap}
+              />
+
+              <XAIExplanationPanel
+                xaiExplanation={xaiExplanation}
+                loading={loading}
+                isLiveMode={isLiveMode}
+              />
+            </div>
+          </>
+        )}
       </main>
     </div>
   );

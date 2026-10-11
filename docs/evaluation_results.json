@@ -1,0 +1,1593 @@
+{
+  "timestamp": "2026-10-12T00:06:20Z",
+  "total_patterns": 64,
+  "analyzer_evaluation": {
+    "accuracy": 0.9688,
+    "total": 64,
+    "correct": 62,
+    "matrix": {
+      "linear": {
+        "linear": 22,
+        "polynomial": 0,
+        "exponential": 0
+      },
+      "polynomial": {
+        "linear": 2,
+        "polynomial": 18,
+        "exponential": 0
+      },
+      "exponential": {
+        "linear": 0,
+        "polynomial": 0,
+        "exponential": 22
+      }
+    },
+    "per_class": {
+      "linear": {
+        "true_positive": 22,
+        "false_positive": 2,
+        "false_negative": 0,
+        "precision": 0.9167,
+        "recall": 1.0,
+        "f1_score": 0.9565
+      },
+      "polynomial": {
+        "true_positive": 18,
+        "false_positive": 0,
+        "false_negative": 2,
+        "precision": 1.0,
+        "recall": 0.9,
+        "f1_score": 0.9474
+      },
+      "exponential": {
+        "true_positive": 22,
+        "false_positive": 0,
+        "false_negative": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1_score": 1.0
+      }
+    }
+  },
+  "path_counter_evaluation": {
+    "accuracy": 0.9375,
+    "total": 64,
+    "correct": 60,
+    "matrix": {
+      "linear": {
+        "linear": 22,
+        "polynomial": 0,
+        "exponential": 0
+      },
+      "polynomial": {
+        "linear": 3,
+        "polynomial": 17,
+        "exponential": 0
+      },
+      "exponential": {
+        "linear": 0,
+        "polynomial": 1,
+        "exponential": 21
+      }
+    },
+    "per_class": {
+      "linear": {
+        "true_positive": 22,
+        "false_positive": 3,
+        "false_negative": 0,
+        "precision": 0.88,
+        "recall": 1.0,
+        "f1_score": 0.9362
+      },
+      "polynomial": {
+        "true_positive": 17,
+        "false_positive": 1,
+        "false_negative": 3,
+        "precision": 0.9444,
+        "recall": 0.85,
+        "f1_score": 0.8947
+      },
+      "exponential": {
+        "true_positive": 21,
+        "false_positive": 0,
+        "false_negative": 1,
+        "precision": 1.0,
+        "recall": 0.9545,
+        "f1_score": 0.9767
+      }
+    }
+  },
+  "benchmark_evaluation": {
+    "accuracy": 0.4375,
+    "total": 64,
+    "correct": 28,
+    "matrix": {
+      "linear": {
+        "linear": 22,
+        "polynomial": 0,
+        "exponential": 0
+      },
+      "polynomial": {
+        "linear": 20,
+        "polynomial": 0,
+        "exponential": 0
+      },
+      "exponential": {
+        "linear": 16,
+        "polynomial": 0,
+        "exponential": 6
+      }
+    },
+    "per_class": {
+      "linear": {
+        "true_positive": 22,
+        "false_positive": 36,
+        "false_negative": 0,
+        "precision": 0.3793,
+        "recall": 1.0,
+        "f1_score": 0.55
+      },
+      "polynomial": {
+        "true_positive": 0,
+        "false_positive": 0,
+        "false_negative": 20,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1_score": 0.0
+      },
+      "exponential": {
+        "true_positive": 6,
+        "false_positive": 0,
+        "false_negative": 16,
+        "precision": 1.0,
+        "recall": 0.2727,
+        "f1_score": 0.4286
+      }
+    }
+  },
+  "disagreements": [
+    {
+      "pattern": "(a+)+",
+      "intended": "exponential",
+      "analyzer": "exponential",
+      "path_counter": "exponential",
+      "benchmark": "linear",
+      "reason": "Engine search nuance: Python re.search terminates upon first match for unanchored patterns unless forced to fail on a non-matching suffix."
+    },
+    {
+      "pattern": "(a*)*",
+      "intended": "exponential",
+      "analyzer": "exponential",
+      "path_counter": "exponential",
+      "benchmark": "linear",
+      "reason": "Engine search nuance: Python re.search terminates upon first match for unanchored patterns unless forced to fail on a non-matching suffix."
+    },
+    {
+      "pattern": "((a+)+)+",
+      "intended": "exponential",
+      "analyzer": "exponential",
+      "path_counter": "exponential",
+      "benchmark": "linear",
+      "reason": "Engine search nuance: Python re.search terminates upon first match for unanchored patterns unless forced to fail on a non-matching suffix."
+    },
+    {
+      "pattern": "(a|aa)+",
+      "intended": "exponential",
+      "analyzer": "exponential",
+      "path_counter": "exponential",
+      "benchmark": "linear",
+      "reason": "Engine search nuance: Python re.search terminates upon first match for unanchored patterns unless forced to fail on a non-matching suffix."
+    },
+    {
+      "pattern": "(a|a+)+",
+      "intended": "exponential",
+      "analyzer": "exponential",
+      "path_counter": "exponential",
+      "benchmark": "linear",
+      "reason": "Engine search nuance: Python re.search terminates upon first match for unanchored patterns unless forced to fail on a non-matching suffix."
+    },
+    {
+      "pattern": "((a|b)+)+",
+      "intended": "exponential",
+      "analyzer": "exponential",
+      "path_counter": "exponential",
+      "benchmark": "linear",
+      "reason": "Engine search nuance: Python re.search terminates upon first match for unanchored patterns unless forced to fail on a non-matching suffix."
+    },
+    {
+      "pattern": "(a|b|ab)+",
+      "intended": "exponential",
+      "analyzer": "exponential",
+      "path_counter": "exponential",
+      "benchmark": "linear",
+      "reason": "Engine search nuance: Python re.search terminates upon first match for unanchored patterns unless forced to fail on a non-matching suffix."
+    },
+    {
+      "pattern": "(ba*a*)+",
+      "intended": "exponential",
+      "analyzer": "exponential",
+      "path_counter": "polynomial",
+      "benchmark": "linear",
+      "reason": "Engine search nuance: Python re.search terminates upon first match for unanchored patterns unless forced to fail on a non-matching suffix."
+    },
+    {
+      "pattern": "([a-z]+)+",
+      "intended": "exponential",
+      "analyzer": "exponential",
+      "path_counter": "exponential",
+      "benchmark": "linear",
+      "reason": "Engine search nuance: Python re.search terminates upon first match for unanchored patterns unless forced to fail on a non-matching suffix."
+    },
+    {
+      "pattern": "(a+a+)+",
+      "intended": "exponential",
+      "analyzer": "exponential",
+      "path_counter": "exponential",
+      "benchmark": "linear",
+      "reason": "Engine search nuance: Python re.search terminates upon first match for unanchored patterns unless forced to fail on a non-matching suffix."
+    },
+    {
+      "pattern": "(0|00)+1",
+      "intended": "exponential",
+      "analyzer": "exponential",
+      "path_counter": "exponential",
+      "benchmark": "linear",
+      "reason": "Engine search nuance: Python re.search terminates upon first match for unanchored patterns unless forced to fail on a non-matching suffix."
+    },
+    {
+      "pattern": "(x|xx)+y",
+      "intended": "exponential",
+      "analyzer": "exponential",
+      "path_counter": "exponential",
+      "benchmark": "linear",
+      "reason": "Engine search nuance: Python re.search terminates upon first match for unanchored patterns unless forced to fail on a non-matching suffix."
+    },
+    {
+      "pattern": "(\\d+)+",
+      "intended": "exponential",
+      "analyzer": "exponential",
+      "path_counter": "exponential",
+      "benchmark": "linear",
+      "reason": "Engine search nuance: Python re.search terminates upon first match for unanchored patterns unless forced to fail on a non-matching suffix."
+    },
+    {
+      "pattern": "(a|b*)+",
+      "intended": "exponential",
+      "analyzer": "exponential",
+      "path_counter": "exponential",
+      "benchmark": "linear",
+      "reason": "Engine search nuance: Python re.search terminates upon first match for unanchored patterns unless forced to fail on a non-matching suffix."
+    },
+    {
+      "pattern": "((0+)+)+",
+      "intended": "exponential",
+      "analyzer": "exponential",
+      "path_counter": "exponential",
+      "benchmark": "linear",
+      "reason": "Engine search nuance: Python re.search terminates upon first match for unanchored patterns unless forced to fail on a non-matching suffix."
+    },
+    {
+      "pattern": "(a*|b*)*",
+      "intended": "exponential",
+      "analyzer": "exponential",
+      "path_counter": "exponential",
+      "benchmark": "linear",
+      "reason": "Engine search nuance: Python re.search terminates upon first match for unanchored patterns unless forced to fail on a non-matching suffix."
+    },
+    {
+      "pattern": "a*a*b",
+      "intended": "polynomial",
+      "analyzer": "polynomial",
+      "path_counter": "polynomial",
+      "benchmark": "linear",
+      "reason": "Engine search nuance: Python re.search terminates upon first match for unanchored patterns unless forced to fail on a non-matching suffix."
+    },
+    {
+      "pattern": "a*a*a*b",
+      "intended": "polynomial",
+      "analyzer": "polynomial",
+      "path_counter": "polynomial",
+      "benchmark": "linear",
+      "reason": "Engine search nuance: Python re.search terminates upon first match for unanchored patterns unless forced to fail on a non-matching suffix."
+    },
+    {
+      "pattern": "a+a+b",
+      "intended": "polynomial",
+      "analyzer": "polynomial",
+      "path_counter": "polynomial",
+      "benchmark": "linear",
+      "reason": "Engine search nuance: Python re.search terminates upon first match for unanchored patterns unless forced to fail on a non-matching suffix."
+    },
+    {
+      "pattern": "a+a+a+b",
+      "intended": "polynomial",
+      "analyzer": "polynomial",
+      "path_counter": "polynomial",
+      "benchmark": "linear",
+      "reason": "Engine search nuance: Python re.search terminates upon first match for unanchored patterns unless forced to fail on a non-matching suffix."
+    },
+    {
+      "pattern": "x*x*y",
+      "intended": "polynomial",
+      "analyzer": "polynomial",
+      "path_counter": "polynomial",
+      "benchmark": "linear",
+      "reason": "Engine search nuance: Python re.search terminates upon first match for unanchored patterns unless forced to fail on a non-matching suffix."
+    },
+    {
+      "pattern": "0*0*1",
+      "intended": "polynomial",
+      "analyzer": "polynomial",
+      "path_counter": "polynomial",
+      "benchmark": "linear",
+      "reason": "Engine search nuance: Python re.search terminates upon first match for unanchored patterns unless forced to fail on a non-matching suffix."
+    },
+    {
+      "pattern": "(a|b)*a*(a|b)*c",
+      "intended": "polynomial",
+      "analyzer": "polynomial",
+      "path_counter": "polynomial",
+      "benchmark": "linear",
+      "reason": "Engine search nuance: Python re.search terminates upon first match for unanchored patterns unless forced to fail on a non-matching suffix."
+    },
+    {
+      "pattern": "a*b*a*b*c",
+      "intended": "polynomial",
+      "analyzer": "polynomial",
+      "path_counter": "polynomial",
+      "benchmark": "linear",
+      "reason": "Engine search nuance: Python re.search terminates upon first match for unanchored patterns unless forced to fail on a non-matching suffix."
+    },
+    {
+      "pattern": "(a|c)*(a|d)*b",
+      "intended": "polynomial",
+      "analyzer": "polynomial",
+      "path_counter": "polynomial",
+      "benchmark": "linear",
+      "reason": "Engine search nuance: Python re.search terminates upon first match for unanchored patterns unless forced to fail on a non-matching suffix."
+    },
+    {
+      "pattern": "\\d*\\d*$",
+      "intended": "polynomial",
+      "analyzer": "polynomial",
+      "path_counter": "polynomial",
+      "benchmark": "linear",
+      "reason": "Engine search nuance: Python re.search terminates upon first match for unanchored patterns unless forced to fail on a non-matching suffix."
+    },
+    {
+      "pattern": "[0-9]*[0-9]*x",
+      "intended": "polynomial",
+      "analyzer": "polynomial",
+      "path_counter": "linear",
+      "benchmark": "linear",
+      "reason": "Engine search nuance: Python re.search terminates upon first match for unanchored patterns unless forced to fail on a non-matching suffix."
+    },
+    {
+      "pattern": "[a-z]*[a-z]*!",
+      "intended": "polynomial",
+      "analyzer": "polynomial",
+      "path_counter": "polynomial",
+      "benchmark": "linear",
+      "reason": "Engine search nuance: Python re.search terminates upon first match for unanchored patterns unless forced to fail on a non-matching suffix."
+    },
+    {
+      "pattern": "a*ba*b",
+      "intended": "polynomial",
+      "analyzer": "linear",
+      "path_counter": "linear",
+      "benchmark": "linear",
+      "reason": "Small alphabet / depth restriction in path-counting DP."
+    },
+    {
+      "pattern": "(a*b)*a*",
+      "intended": "polynomial",
+      "analyzer": "linear",
+      "path_counter": "linear",
+      "benchmark": "linear",
+      "reason": "Small alphabet / depth restriction in path-counting DP."
+    },
+    {
+      "pattern": "c*c*d",
+      "intended": "polynomial",
+      "analyzer": "polynomial",
+      "path_counter": "polynomial",
+      "benchmark": "linear",
+      "reason": "Engine search nuance: Python re.search terminates upon first match for unanchored patterns unless forced to fail on a non-matching suffix."
+    },
+    {
+      "pattern": "m*m*n",
+      "intended": "polynomial",
+      "analyzer": "polynomial",
+      "path_counter": "polynomial",
+      "benchmark": "linear",
+      "reason": "Engine search nuance: Python re.search terminates upon first match for unanchored patterns unless forced to fail on a non-matching suffix."
+    },
+    {
+      "pattern": "p*p*q",
+      "intended": "polynomial",
+      "analyzer": "polynomial",
+      "path_counter": "polynomial",
+      "benchmark": "linear",
+      "reason": "Engine search nuance: Python re.search terminates upon first match for unanchored patterns unless forced to fail on a non-matching suffix."
+    },
+    {
+      "pattern": "s*s*t",
+      "intended": "polynomial",
+      "analyzer": "polynomial",
+      "path_counter": "polynomial",
+      "benchmark": "linear",
+      "reason": "Engine search nuance: Python re.search terminates upon first match for unanchored patterns unless forced to fail on a non-matching suffix."
+    },
+    {
+      "pattern": "w*w*v",
+      "intended": "polynomial",
+      "analyzer": "polynomial",
+      "path_counter": "polynomial",
+      "benchmark": "linear",
+      "reason": "Engine search nuance: Python re.search terminates upon first match for unanchored patterns unless forced to fail on a non-matching suffix."
+    },
+    {
+      "pattern": "k*k*k*m",
+      "intended": "polynomial",
+      "analyzer": "polynomial",
+      "path_counter": "polynomial",
+      "benchmark": "linear",
+      "reason": "Engine search nuance: Python re.search terminates upon first match for unanchored patterns unless forced to fail on a non-matching suffix."
+    }
+  ],
+  "disagreement_count": 36,
+  "rows": [
+    {
+      "pattern": "(a+)+",
+      "family": "nested_plus",
+      "intended": "exponential",
+      "analyzer": "exponential",
+      "path_counter": "exponential",
+      "benchmark": "linear",
+      "paths": [
+        0,
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ],
+      "benchmark_max_ms": 0.01
+    },
+    {
+      "pattern": "(a*)*",
+      "family": "nested_star",
+      "intended": "exponential",
+      "analyzer": "exponential",
+      "path_counter": "exponential",
+      "benchmark": "linear",
+      "paths": [
+        2,
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ],
+      "benchmark_max_ms": 0.0
+    },
+    {
+      "pattern": "((a+)+)+",
+      "family": "nested_plus_deep",
+      "intended": "exponential",
+      "analyzer": "exponential",
+      "path_counter": "exponential",
+      "benchmark": "linear",
+      "paths": [
+        0,
+        1,
+        3,
+        9,
+        27,
+        81,
+        243
+      ],
+      "benchmark_max_ms": 0.01
+    },
+    {
+      "pattern": "(a|aa)+",
+      "family": "overlapping_alternation",
+      "intended": "exponential",
+      "analyzer": "exponential",
+      "path_counter": "exponential",
+      "benchmark": "linear",
+      "paths": [
+        0,
+        1,
+        2,
+        3,
+        5,
+        8,
+        13
+      ],
+      "benchmark_max_ms": 0.01
+    },
+    {
+      "pattern": "(a|a+)+",
+      "family": "overlapping_alternation",
+      "intended": "exponential",
+      "analyzer": "exponential",
+      "path_counter": "exponential",
+      "benchmark": "linear",
+      "paths": [
+        0,
+        2,
+        5,
+        13,
+        34,
+        89,
+        233
+      ],
+      "benchmark_max_ms": 0.01
+    },
+    {
+      "pattern": "(a*)*b",
+      "family": "nested_star",
+      "intended": "exponential",
+      "analyzer": "exponential",
+      "path_counter": "exponential",
+      "benchmark": "exponential",
+      "paths": [
+        0,
+        2,
+        1,
+        2,
+        4,
+        8,
+        16
+      ],
+      "benchmark_max_ms": 250.0
+    },
+    {
+      "pattern": "(a+)*b",
+      "family": "nested_star",
+      "intended": "exponential",
+      "analyzer": "exponential",
+      "path_counter": "exponential",
+      "benchmark": "exponential",
+      "paths": [
+        0,
+        1,
+        1,
+        2,
+        4,
+        8,
+        16
+      ],
+      "benchmark_max_ms": 250.0
+    },
+    {
+      "pattern": "(a*)+b",
+      "family": "nested_star",
+      "intended": "exponential",
+      "analyzer": "exponential",
+      "path_counter": "exponential",
+      "benchmark": "exponential",
+      "paths": [
+        0,
+        1,
+        1,
+        2,
+        4,
+        8,
+        16
+      ],
+      "benchmark_max_ms": 250.0
+    },
+    {
+      "pattern": "((a|b)+)+",
+      "family": "nested_union",
+      "intended": "exponential",
+      "analyzer": "exponential",
+      "path_counter": "exponential",
+      "benchmark": "linear",
+      "paths": [
+        0,
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ],
+      "benchmark_max_ms": 0.01
+    },
+    {
+      "pattern": "(a|b|ab)+",
+      "family": "overlapping_union",
+      "intended": "exponential",
+      "analyzer": "exponential",
+      "path_counter": "exponential",
+      "benchmark": "linear",
+      "paths": [
+        0,
+        1,
+        2,
+        2,
+        4,
+        4,
+        8
+      ],
+      "benchmark_max_ms": 0.01
+    },
+    {
+      "pattern": "(ba*a*)+",
+      "family": "overlapping_stars_in_loop",
+      "intended": "exponential",
+      "analyzer": "exponential",
+      "path_counter": "polynomial",
+      "benchmark": "linear",
+      "paths": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        6,
+        9
+      ],
+      "benchmark_max_ms": 0.01
+    },
+    {
+      "pattern": "([a-z]+)+",
+      "family": "nested_class_plus",
+      "intended": "exponential",
+      "analyzer": "exponential",
+      "path_counter": "exponential",
+      "benchmark": "linear",
+      "paths": [
+        0,
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ],
+      "benchmark_max_ms": 0.0
+    },
+    {
+      "pattern": "(a+a+)+",
+      "family": "nested_concat_plus",
+      "intended": "exponential",
+      "analyzer": "exponential",
+      "path_counter": "exponential",
+      "benchmark": "linear",
+      "paths": [
+        0,
+        0,
+        1,
+        2,
+        4,
+        8,
+        16
+      ],
+      "benchmark_max_ms": 0.01
+    },
+    {
+      "pattern": "(0|00)+1",
+      "family": "overlapping_alternation",
+      "intended": "exponential",
+      "analyzer": "exponential",
+      "path_counter": "exponential",
+      "benchmark": "linear",
+      "paths": [
+        0,
+        0,
+        1,
+        2,
+        3,
+        5,
+        8
+      ],
+      "benchmark_max_ms": 8.54
+    },
+    {
+      "pattern": "(1+)+0",
+      "family": "nested_plus",
+      "intended": "exponential",
+      "analyzer": "exponential",
+      "path_counter": "exponential",
+      "benchmark": "exponential",
+      "paths": [
+        0,
+        0,
+        1,
+        2,
+        4,
+        8,
+        16
+      ],
+      "benchmark_max_ms": 250.0
+    },
+    {
+      "pattern": "(x|xx)+y",
+      "family": "overlapping_alternation",
+      "intended": "exponential",
+      "analyzer": "exponential",
+      "path_counter": "exponential",
+      "benchmark": "linear",
+      "paths": [
+        0,
+        0,
+        1,
+        2,
+        3,
+        5,
+        8
+      ],
+      "benchmark_max_ms": 8.7
+    },
+    {
+      "pattern": "(\\d+)+",
+      "family": "nested_class_plus",
+      "intended": "exponential",
+      "analyzer": "exponential",
+      "path_counter": "exponential",
+      "benchmark": "linear",
+      "paths": [
+        0,
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ],
+      "benchmark_max_ms": 0.0
+    },
+    {
+      "pattern": "(a?a?)+$",
+      "family": "optional_loop_anchored",
+      "intended": "exponential",
+      "analyzer": "exponential",
+      "path_counter": "exponential",
+      "benchmark": "exponential",
+      "paths": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32,
+        64
+      ],
+      "benchmark_max_ms": 250.0
+    },
+    {
+      "pattern": "(a|b*)+",
+      "family": "nested_union_star",
+      "intended": "exponential",
+      "analyzer": "exponential",
+      "path_counter": "exponential",
+      "benchmark": "linear",
+      "paths": [
+        1,
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ],
+      "benchmark_max_ms": 0.01
+    },
+    {
+      "pattern": "((0+)+)+",
+      "family": "nested_plus_deep",
+      "intended": "exponential",
+      "analyzer": "exponential",
+      "path_counter": "exponential",
+      "benchmark": "linear",
+      "paths": [
+        0,
+        1,
+        3,
+        9,
+        27,
+        81,
+        243
+      ],
+      "benchmark_max_ms": 0.0
+    },
+    {
+      "pattern": "(a+)+$",
+      "family": "nested_plus_anchored",
+      "intended": "exponential",
+      "analyzer": "exponential",
+      "path_counter": "exponential",
+      "benchmark": "exponential",
+      "paths": [
+        0,
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ],
+      "benchmark_max_ms": 250.0
+    },
+    {
+      "pattern": "(a*|b*)*",
+      "family": "nested_union_star",
+      "intended": "exponential",
+      "analyzer": "exponential",
+      "path_counter": "exponential",
+      "benchmark": "linear",
+      "paths": [
+        3,
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ],
+      "benchmark_max_ms": 0.0
+    },
+    {
+      "pattern": "a*a*b",
+      "family": "chained_stars_2",
+      "intended": "polynomial",
+      "analyzer": "polynomial",
+      "path_counter": "polynomial",
+      "benchmark": "linear",
+      "paths": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "benchmark_max_ms": 0.02
+    },
+    {
+      "pattern": "a*a*a*b",
+      "family": "chained_stars_3",
+      "intended": "polynomial",
+      "analyzer": "polynomial",
+      "path_counter": "polynomial",
+      "benchmark": "linear",
+      "paths": [
+        0,
+        1,
+        3,
+        6,
+        10,
+        15,
+        21
+      ],
+      "benchmark_max_ms": 0.03
+    },
+    {
+      "pattern": "a+a+b",
+      "family": "chained_plus_2",
+      "intended": "polynomial",
+      "analyzer": "polynomial",
+      "path_counter": "polynomial",
+      "benchmark": "linear",
+      "paths": [
+        0,
+        0,
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "benchmark_max_ms": 0.01
+    },
+    {
+      "pattern": "a+a+a+b",
+      "family": "chained_plus_3",
+      "intended": "polynomial",
+      "analyzer": "polynomial",
+      "path_counter": "polynomial",
+      "benchmark": "linear",
+      "paths": [
+        0,
+        0,
+        0,
+        0,
+        1,
+        3,
+        6
+      ],
+      "benchmark_max_ms": 0.03
+    },
+    {
+      "pattern": "x*x*y",
+      "family": "chained_stars_2",
+      "intended": "polynomial",
+      "analyzer": "polynomial",
+      "path_counter": "polynomial",
+      "benchmark": "linear",
+      "paths": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "benchmark_max_ms": 0.01
+    },
+    {
+      "pattern": "0*0*1",
+      "family": "chained_stars_2",
+      "intended": "polynomial",
+      "analyzer": "polynomial",
+      "path_counter": "polynomial",
+      "benchmark": "linear",
+      "paths": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "benchmark_max_ms": 0.01
+    },
+    {
+      "pattern": "(a|b)*a*(a|b)*c",
+      "family": "interleaved_stars",
+      "intended": "polynomial",
+      "analyzer": "polynomial",
+      "path_counter": "polynomial",
+      "benchmark": "linear",
+      "paths": [
+        0,
+        1,
+        3,
+        6,
+        10,
+        15,
+        21
+      ],
+      "benchmark_max_ms": 0.44
+    },
+    {
+      "pattern": "a*b*a*b*c",
+      "family": "interleaved_stars",
+      "intended": "polynomial",
+      "analyzer": "polynomial",
+      "path_counter": "polynomial",
+      "benchmark": "linear",
+      "paths": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "benchmark_max_ms": 0.01
+    },
+    {
+      "pattern": "(a|c)*(a|d)*b",
+      "family": "overlapping_star_chain",
+      "intended": "polynomial",
+      "analyzer": "polynomial",
+      "path_counter": "polynomial",
+      "benchmark": "linear",
+      "paths": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "benchmark_max_ms": 0.07
+    },
+    {
+      "pattern": "\\d*\\d*$",
+      "family": "chained_class_stars",
+      "intended": "polynomial",
+      "analyzer": "polynomial",
+      "path_counter": "polynomial",
+      "benchmark": "linear",
+      "paths": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "benchmark_max_ms": 0.03
+    },
+    {
+      "pattern": "[0-9]*[0-9]*x",
+      "family": "chained_class_stars",
+      "intended": "polynomial",
+      "analyzer": "polynomial",
+      "path_counter": "linear",
+      "benchmark": "linear",
+      "paths": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "benchmark_max_ms": 0.01
+    },
+    {
+      "pattern": "[a-z]*[a-z]*!",
+      "family": "chained_class_stars",
+      "intended": "polynomial",
+      "analyzer": "polynomial",
+      "path_counter": "polynomial",
+      "benchmark": "linear",
+      "paths": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "benchmark_max_ms": 0.01
+    },
+    {
+      "pattern": "a*ba*b",
+      "family": "token_separated_stars",
+      "intended": "polynomial",
+      "analyzer": "linear",
+      "path_counter": "linear",
+      "benchmark": "linear",
+      "paths": [
+        0,
+        0,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "benchmark_max_ms": 0.01
+    },
+    {
+      "pattern": "(a*b)*a*",
+      "family": "token_separated_stars",
+      "intended": "polynomial",
+      "analyzer": "linear",
+      "path_counter": "linear",
+      "benchmark": "linear",
+      "paths": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "benchmark_max_ms": 0.0
+    },
+    {
+      "pattern": "c*c*d",
+      "family": "chained_stars_2",
+      "intended": "polynomial",
+      "analyzer": "polynomial",
+      "path_counter": "polynomial",
+      "benchmark": "linear",
+      "paths": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "benchmark_max_ms": 0.01
+    },
+    {
+      "pattern": "m*m*n",
+      "family": "chained_stars_2",
+      "intended": "polynomial",
+      "analyzer": "polynomial",
+      "path_counter": "polynomial",
+      "benchmark": "linear",
+      "paths": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "benchmark_max_ms": 0.01
+    },
+    {
+      "pattern": "p*p*q",
+      "family": "chained_stars_2",
+      "intended": "polynomial",
+      "analyzer": "polynomial",
+      "path_counter": "polynomial",
+      "benchmark": "linear",
+      "paths": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "benchmark_max_ms": 0.01
+    },
+    {
+      "pattern": "s*s*t",
+      "family": "chained_stars_2",
+      "intended": "polynomial",
+      "analyzer": "polynomial",
+      "path_counter": "polynomial",
+      "benchmark": "linear",
+      "paths": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "benchmark_max_ms": 0.01
+    },
+    {
+      "pattern": "w*w*v",
+      "family": "chained_stars_2",
+      "intended": "polynomial",
+      "analyzer": "polynomial",
+      "path_counter": "polynomial",
+      "benchmark": "linear",
+      "paths": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "benchmark_max_ms": 0.01
+    },
+    {
+      "pattern": "k*k*k*m",
+      "family": "chained_stars_3",
+      "intended": "polynomial",
+      "analyzer": "polynomial",
+      "path_counter": "polynomial",
+      "benchmark": "linear",
+      "paths": [
+        0,
+        1,
+        3,
+        6,
+        10,
+        15,
+        21
+      ],
+      "benchmark_max_ms": 0.04
+    },
+    {
+      "pattern": "a*b+",
+      "family": "safe_disjoint_seq",
+      "intended": "linear",
+      "analyzer": "linear",
+      "path_counter": "linear",
+      "benchmark": "linear",
+      "paths": [
+        0,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "benchmark_max_ms": 0.01
+    },
+    {
+      "pattern": "a+b+c+",
+      "family": "safe_disjoint_seq",
+      "intended": "linear",
+      "analyzer": "linear",
+      "path_counter": "linear",
+      "benchmark": "linear",
+      "paths": [
+        0,
+        0,
+        0,
+        1,
+        1,
+        1,
+        1
+      ],
+      "benchmark_max_ms": 0.01
+    },
+    {
+      "pattern": "(a|b)*abb",
+      "family": "safe_loop_exit",
+      "intended": "linear",
+      "analyzer": "linear",
+      "path_counter": "linear",
+      "benchmark": "linear",
+      "paths": [
+        0,
+        0,
+        0,
+        1,
+        1,
+        1,
+        1
+      ],
+      "benchmark_max_ms": 0.02
+    },
+    {
+      "pattern": "hello",
+      "family": "safe_literal",
+      "intended": "linear",
+      "analyzer": "linear",
+      "path_counter": "linear",
+      "benchmark": "linear",
+      "paths": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0
+      ],
+      "benchmark_max_ms": 0.0
+    },
+    {
+      "pattern": "foo|bar",
+      "family": "safe_disjoint_union",
+      "intended": "linear",
+      "analyzer": "linear",
+      "path_counter": "linear",
+      "benchmark": "linear",
+      "paths": [
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0
+      ],
+      "benchmark_max_ms": 0.0
+    },
+    {
+      "pattern": "(0|1)*00",
+      "family": "safe_loop_exit",
+      "intended": "linear",
+      "analyzer": "linear",
+      "path_counter": "linear",
+      "benchmark": "linear",
+      "paths": [
+        0,
+        0,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "benchmark_max_ms": 0.0
+    },
+    {
+      "pattern": "a(b|c)*d",
+      "family": "safe_bounded_loop",
+      "intended": "linear",
+      "analyzer": "linear",
+      "path_counter": "linear",
+      "benchmark": "linear",
+      "paths": [
+        0,
+        0,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "benchmark_max_ms": 0.0
+    },
+    {
+      "pattern": "^[a-z]+@[a-z]+\\.[a-z]+$",
+      "family": "safe_anchored_email",
+      "intended": "linear",
+      "analyzer": "linear",
+      "path_counter": "linear",
+      "benchmark": "linear",
+      "paths": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        1
+      ],
+      "benchmark_max_ms": 0.0
+    },
+    {
+      "pattern": "^\\d\\d\\d-\\d\\d\\d\\d$",
+      "family": "safe_anchored_phone",
+      "intended": "linear",
+      "analyzer": "linear",
+      "path_counter": "linear",
+      "benchmark": "linear",
+      "paths": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "benchmark_max_ms": 0.0
+    },
+    {
+      "pattern": "^user_[a-zA-Z0-9]+$",
+      "family": "safe_anchored_ident",
+      "intended": "linear",
+      "analyzer": "linear",
+      "path_counter": "linear",
+      "benchmark": "linear",
+      "paths": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "benchmark_max_ms": 0.0
+    },
+    {
+      "pattern": "^https?://[a-z0-9]+$",
+      "family": "safe_anchored_url",
+      "intended": "linear",
+      "analyzer": "linear",
+      "path_counter": "linear",
+      "benchmark": "linear",
+      "paths": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "benchmark_max_ms": 0.0
+    },
+    {
+      "pattern": "^[0-9]+(\\.[0-9]+)?$",
+      "family": "safe_anchored_float",
+      "intended": "linear",
+      "analyzer": "linear",
+      "path_counter": "linear",
+      "benchmark": "linear",
+      "paths": [
+        0,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "benchmark_max_ms": 0.0
+    },
+    {
+      "pattern": "a?b+c*",
+      "family": "safe_sequential_ops",
+      "intended": "linear",
+      "analyzer": "linear",
+      "path_counter": "linear",
+      "benchmark": "linear",
+      "paths": [
+        0,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "benchmark_max_ms": 0.0
+    },
+    {
+      "pattern": "(a|b)c(d|e)",
+      "family": "safe_branching_dag",
+      "intended": "linear",
+      "analyzer": "linear",
+      "path_counter": "linear",
+      "benchmark": "linear",
+      "paths": [
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0
+      ],
+      "benchmark_max_ms": 0.0
+    },
+    {
+      "pattern": "ab*c+",
+      "family": "safe_sequential_ops",
+      "intended": "linear",
+      "analyzer": "linear",
+      "path_counter": "linear",
+      "benchmark": "linear",
+      "paths": [
+        0,
+        0,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "benchmark_max_ms": 0.0
+    },
+    {
+      "pattern": "(x|y)*z",
+      "family": "safe_loop_exit",
+      "intended": "linear",
+      "analyzer": "linear",
+      "path_counter": "linear",
+      "benchmark": "linear",
+      "paths": [
+        0,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "benchmark_max_ms": 0.0
+    },
+    {
+      "pattern": "1*0+",
+      "family": "safe_disjoint_seq",
+      "intended": "linear",
+      "analyzer": "linear",
+      "path_counter": "linear",
+      "benchmark": "linear",
+      "paths": [
+        0,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "benchmark_max_ms": 0.0
+    },
+    {
+      "pattern": "(p|q)*r(s|t)*",
+      "family": "safe_token_separated_loops",
+      "intended": "linear",
+      "analyzer": "linear",
+      "path_counter": "linear",
+      "benchmark": "linear",
+      "paths": [
+        0,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "benchmark_max_ms": 0.01
+    },
+    {
+      "pattern": "cat|dog|fish",
+      "family": "safe_disjoint_union",
+      "intended": "linear",
+      "analyzer": "linear",
+      "path_counter": "linear",
+      "benchmark": "linear",
+      "paths": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "benchmark_max_ms": 0.0
+    },
+    {
+      "pattern": "^test\\d+$",
+      "family": "safe_anchored_prefix",
+      "intended": "linear",
+      "analyzer": "linear",
+      "path_counter": "linear",
+      "benchmark": "linear",
+      "paths": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "benchmark_max_ms": 0.0
+    },
+    {
+      "pattern": "alpha(beta|gamma)",
+      "family": "safe_prefix_union",
+      "intended": "linear",
+      "analyzer": "linear",
+      "path_counter": "linear",
+      "benchmark": "linear",
+      "paths": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "benchmark_max_ms": 0.0
+    },
+    {
+      "pattern": "^abc$",
+      "family": "safe_exact_literal",
+      "intended": "linear",
+      "analyzer": "linear",
+      "path_counter": "linear",
+      "benchmark": "linear",
+      "paths": [
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0
+      ],
+      "benchmark_max_ms": 0.0
+    }
+  ]
+}

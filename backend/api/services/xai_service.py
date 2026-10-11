@@ -36,7 +36,10 @@ class XAIService:
         """
         # If simulation trace is not provided, dynamically compute it first
         if simulation_trace is None and input_string is not None:
-            simulation_trace = self.simulation_service.run_simulation(automaton, input_string)
+            try:
+                simulation_trace = self.simulation_service.run_simulation(automaton, input_string)
+            except Exception as e:
+                logger.warning("Could not auto-generate simulation trace: %s", e)
 
         try:
             return self.pipeline.explain(
@@ -52,22 +55,33 @@ class XAIService:
     def _heuristic_fallback_explanation(
         self,
         automaton: Automaton,
-        simulation_trace: Optional[SimulationResult],
+        simulation_trace: Optional[Any],
         input_string: str,
     ) -> Dict[str, Any]:
         """Graceful fallback if hardware/tensor operations fail."""
         data = automaton.model_dump() if hasattr(automaton, "model_dump") else automaton
         states = [s["id"] if isinstance(s, dict) else s.id for s in data.get("states", [])]
         transitions = data.get("transitions", [])
-        accepted = simulation_trace.accepted if simulation_trace else True
+        if isinstance(simulation_trace, dict):
+            accepted = simulation_trace.get("accepted", True)
+        elif simulation_trace is not None:
+            accepted = getattr(simulation_trace, "accepted", True)
+        else:
+            accepted = True
 
         edge_imp = []
         for t in transitions:
-            t_dict = t if isinstance(t, dict) else t.model_dump()
+            t_dict = t if isinstance(t, dict) else (
+                t.model_dump() if hasattr(t, "model_dump") else {
+                    "from_state": getattr(t, "from_state", ""),
+                    "to_state": getattr(t, "to_state", ""),
+                    "symbol": getattr(t, "symbol", ""),
+                }
+            )
             edge_imp.append({
-                "from_state": t_dict["from_state"],
-                "to_state": t_dict["to_state"],
-                "symbol": t_dict["symbol"],
+                "from_state": t_dict.get("from_state", ""),
+                "to_state": t_dict.get("to_state", ""),
+                "symbol": t_dict.get("symbol", ""),
                 "importance": 0.5,
             })
 
