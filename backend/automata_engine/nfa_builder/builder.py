@@ -139,6 +139,8 @@ class NFABuilder:
             state_count=len(states),
             transition_count=len(transitions),
             is_minimized=False,
+            has_start_anchor=getattr(ast, "has_start_anchor", False),
+            has_end_anchor=getattr(ast, "has_end_anchor", False),
             description="Constructed using Thompson's Algorithm",
         )
 

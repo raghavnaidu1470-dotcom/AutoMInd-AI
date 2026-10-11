@@ -10,6 +10,7 @@ in automata theory (Weber & Seidl 1991, Mohri & Nederhof 2001, Wich 2005).
 Provides pumpable attack strings (prefix + pump^k + failing suffix) for empirical validation.
 """
 
+from collections import defaultdict, deque
 from enum import Enum
 from typing import Dict, List, Set, Tuple, Optional, Any, Union
 import time
@@ -45,6 +46,9 @@ class AmbiguityAnalysisResult(BaseModel):
     explanation: str = Field("", description="Human-readable explanation of ambiguity finding")
     execution_time_ms: float = Field(0.0, description="Analyzer execution duration in milliseconds")
     metrics: Dict[str, Any] = Field(default_factory=dict, description="Topological metrics of trimmed NFA and product graphs")
+    has_start_anchor: bool = Field(False, description="True if regex has '^' start anchor")
+    has_end_anchor: bool = Field(False, description="True if regex has '$' end anchor")
+    engine_nuance_note: Optional[str] = Field(None, description="Nuance on engine matching mode (search vs fullmatch/suffix)")
 
 
 class AmbiguityAnalyzer:
@@ -78,6 +82,13 @@ class AmbiguityAnalyzer:
             nfa = target
             regex_str = nfa.metadata.regex if nfa.metadata else ""
 
+        has_start_anchor = getattr(nfa.metadata, "has_start_anchor", False) if nfa.metadata else False
+        has_end_anchor = getattr(nfa.metadata, "has_end_anchor", False) if nfa.metadata else False
+        engine_nuance_note = (
+            "Structural ambiguity does not always cause slowness under unanchored search mode without a failing suffix; "
+            "under fullmatch or when right-anchored / followed by a mismatching suffix, backtracking forces super-linear exploration."
+        )
+
         if len(nfa.states) > self.max_states:
             elapsed_ms = round((time.perf_counter() - start_time) * 1000, 2)
             return AmbiguityAnalysisResult(
@@ -87,6 +98,9 @@ class AmbiguityAnalyzer:
                 offending_transitions=[],
                 explanation=f"NFA size ({len(nfa.states)} states) exceeds analyzer threshold ({self.max_states}).",
                 execution_time_ms=elapsed_ms,
+                has_start_anchor=has_start_anchor,
+                has_end_anchor=has_end_anchor,
+                engine_nuance_note=engine_nuance_note,
             )
 
         # 1. Reachability & Co-reachability Trimming
@@ -128,6 +142,9 @@ class AmbiguityAnalyzer:
                 offending_transitions=[],
                 explanation="Automaton has no reachable accepting paths; language is empty or dead-end.",
                 execution_time_ms=elapsed_ms,
+                has_start_anchor=has_start_anchor,
+                has_end_anchor=has_end_anchor,
+                engine_nuance_note=engine_nuance_note,
             )
 
         # Useful adjacency
@@ -138,72 +155,32 @@ class AmbiguityAnalyzer:
                 useful_adj[t.from_state].add(t.to_state)
                 trans_by_src[t.from_state].append(t)
 
-        # 2. Tarjan SCC decomposition
-        scc_map, sccs = self._tarjan_scc(useful, useful_adj)
-
-        # 3. Check Exponential Ambiguity (EDA)
-        eda_res = self._detect_exponential_ambiguity(
-            nfa, useful, useful_adj, trans_by_src, sccs, scc_map, start_time
+        # 2. Pair Graph G2 Ambiguity Analysis (Weber & Seidl 1991)
+        risk_class, offending_states, offending_trans, attack_str, deg, expl = self._analyze_pair_graph(
+            nfa, useful, trans_by_src
         )
-        if eda_res is not None:
-            offending_states, offending_trans, attack_str, expl = eda_res
-            elapsed_ms = round((time.perf_counter() - start_time) * 1000, 2)
-            return AmbiguityAnalysisResult(
-                risk_class=AmbiguityRisk.EXPONENTIAL,
-                is_vulnerable=True,
-                offending_states=offending_states,
-                offending_transitions=offending_trans,
-                attack_string=attack_str,
-                degree=None,
-                explanation=expl,
-                execution_time_ms=elapsed_ms,
-                metrics={
-                    "useful_states": len(useful),
-                    "scc_count": len(sccs),
-                    "ambiguity_type": "EDA (Exponential)",
-                },
-            )
-
-        # 4. Check Polynomial Ambiguity (PDA)
-        pda_res = self._detect_polynomial_ambiguity(
-            nfa, useful, useful_adj, trans_by_src, sccs, scc_map, start_time
-        )
-        if pda_res is not None:
-            offending_states, offending_trans, attack_str, deg, expl = pda_res
-            elapsed_ms = round((time.perf_counter() - start_time) * 1000, 2)
-            return AmbiguityAnalysisResult(
-                risk_class=AmbiguityRisk.POLYNOMIAL,
-                is_vulnerable=True,
-                offending_states=offending_states,
-                offending_transitions=offending_trans,
-                attack_string=attack_str,
-                degree=deg,
-                explanation=expl,
-                execution_time_ms=elapsed_ms,
-                metrics={
-                    "useful_states": len(useful),
-                    "scc_count": len(sccs),
-                    "ambiguity_type": "PDA (Polynomial)",
-                    "degree": deg,
-                },
-            )
-
-        # 5. Linear Ambiguity (Safe)
         elapsed_ms = round((time.perf_counter() - start_time) * 1000, 2)
+        amb_type = (
+            "EDA (Exponential)"
+            if risk_class == AmbiguityRisk.EXPONENTIAL
+            else ("PDA (Polynomial)" if risk_class == AmbiguityRisk.POLYNOMIAL else "Linear (Safe)")
+        )
         return AmbiguityAnalysisResult(
-            risk_class=AmbiguityRisk.LINEAR,
-            is_vulnerable=False,
-            offending_states=[],
-            offending_transitions=[],
-            attack_string=None,
-            degree=1,
-            explanation="Exact ambiguity analysis confirmed linear complexity: no branching or overlapping cycles detected.",
+            risk_class=risk_class,
+            is_vulnerable=(risk_class != AmbiguityRisk.LINEAR),
+            offending_states=offending_states,
+            offending_transitions=offending_trans,
+            attack_string=attack_str,
+            degree=deg,
+            explanation=expl,
             execution_time_ms=elapsed_ms,
             metrics={
                 "useful_states": len(useful),
-                "scc_count": len(sccs),
-                "ambiguity_type": "Linear (Safe)",
+                "ambiguity_type": amb_type,
             },
+            has_start_anchor=has_start_anchor,
+            has_end_anchor=has_end_anchor,
+            engine_nuance_note=engine_nuance_note,
         )
 
     def _tarjan_scc(
@@ -252,159 +229,236 @@ class AmbiguityAnalyzer:
 
         return scc_map, sccs
 
-    def _detect_exponential_ambiguity(
+    def _analyze_pair_graph(
         self,
         nfa: Automaton,
         useful: Set[str],
-        useful_adj: Dict[str, Set[str]],
         trans_by_src: Dict[str, List[Transition]],
-        sccs: List[Set[str]],
-        scc_map: Dict[str, int],
-        start_time: float,
-    ) -> Optional[Tuple[List[str], List[str], AttackString, str]]:
+    ) -> Tuple[AmbiguityRisk, List[str], List[str], Optional[AttackString], Optional[int], str]:
         """
-        Detects Exponential Ambiguity (EDA):
-        A state u within a non-trivial SCC has >= 2 distinct directed paths that return to u
-        while consuming the same non-empty word v in Sigma^+.
+        Exact Ambiguity Analysis via Pair Graph G2 (Weber & Seidl 1991, Theorem 1 and Sections 3-4).
+        Constructs trimmed product automaton G2 = A x A on useful transitions.
+        - EDA: Strongly connected component in G2 contains both diagonal (u, u) and
+          off-diagonal (r, s) pairs with r != s (or multi-edges on diagonal).
+        - PDA: Strongly connected component in G2 is cyclic and purely off-diagonal.
+        - Linear: All reachable and co-reachable cycles in G2 are purely diagonal (unambiguous).
         """
-        best_eda = None
-        for scc_idx, comp in enumerate(sccs):
-            if (time.perf_counter() - start_time) > self.timeout_sec:
-                break
-            # Check if comp contains at least one directed cycle
-            has_internal_cycle = any(bool(useful_adj.get(u, set()) & comp) for u in comp)
-            if not has_internal_cycle:
-                continue
+        sym_trans = [
+            t
+            for t in nfa.transitions
+            if t.symbol not in ("ε", "") and t.from_state in useful and t.to_state in useful
+        ]
+        if not sym_trans:
+            return (
+                AmbiguityRisk.LINEAR,
+                [],
+                [],
+                None,
+                1,
+                "Automaton has no alphabet transitions; language has linear ambiguity.",
+            )
 
-            # Check states in comp for multi-path cycles
-            for u in sorted(list(comp)):
-                if (time.perf_counter() - start_time) > self.timeout_sec:
+        eps_adj: Dict[str, Set[str]] = defaultdict(set)
+        for t in nfa.transitions:
+            if t.symbol in ("ε", ""):
+                eps_adj[t.from_state].add(t.to_state)
+
+        def count_eps_paths(src: str, dst: str, visited: Optional[Set[str]] = None) -> int:
+            if visited is None:
+                visited = set()
+            if src == dst:
+                return 1
+            if src in visited:
+                return 0
+            visited.add(src)
+            cnt = 0
+            for nxt in eps_adj.get(src, set()):
+                cnt += count_eps_paths(nxt, dst, visited)
+                if cnt >= 2:
                     break
+            visited.remove(src)
+            return cnt
 
-                # BFS to explore distinct paths originating from u and returning to u
-                # queue item: (current_node, consumed_symbols_str, path_transition_ids_tuple)
-                paths_to_u: Dict[str, List[Tuple[str, ...]]] = {}
-                q: List[Tuple[str, str, Tuple[str, ...]]] = [(u, "", ())]
-                visited_states: Set[Tuple[str, str, Tuple[str, ...]]] = set()
+        start = nfa.start_state
+        accepts = {s.id for s in nfa.states if s.is_accepting}
 
-                while q:
-                    if (time.perf_counter() - start_time) > self.timeout_sec:
-                        break
-                    curr, word, path_trans = q.pop(0)
+        nodes: List[Tuple[int, int]] = []
+        for i, e1 in enumerate(sym_trans):
+            for j, e2 in enumerate(sym_trans):
+                if e1.symbol == e2.symbol:
+                    nodes.append((i, j))
 
-                    # Return to u with >= 1 non-empty character consumed
-                    if curr == u and len(path_trans) > 0 and len(word) > 0:
-                        paths_to_u.setdefault(word, []).append(path_trans)
-                        if len(paths_to_u[word]) >= 2:
-                            # EDA Confirmed! Two distinct paths from u to u on word
-                            pump = word
-                            prefix = self._find_prefix_to_node(nfa, useful, trans_by_src, u)
-                            suffix = self._synthesize_failing_suffix(nfa, useful, trans_by_src, [u])
+        adj: Dict[Tuple[int, int], List[Tuple[int, int]]] = defaultdict(list)
+        multi_edge: Set[Tuple[int, int]] = set()
 
-                            # Collect participating states and transitions
-                            offending_trans_set = set(paths_to_u[word][0] + paths_to_u[word][1])
-                            offending_states_set = set([u])
-                            for t in nfa.transitions:
-                                if t.id in offending_trans_set:
-                                    offending_states_set.add(t.from_state)
-                                    offending_states_set.add(t.to_state)
+        for idx1, (i, j) in enumerate(nodes):
+            e_i = sym_trans[i]
+            e_j = sym_trans[j]
+            for idx2, (k, l) in enumerate(nodes):
+                e_k = sym_trans[k]
+                e_l = sym_trans[l]
+                p_ik = count_eps_paths(e_i.to_state, e_k.from_state)
+                p_jl = count_eps_paths(e_j.to_state, e_l.from_state)
+                if p_ik > 0 and p_jl > 0:
+                    adj[(i, j)].append((k, l))
+                    if i == j and k == l and (p_ik >= 2 or p_jl >= 2):
+                        multi_edge.add((i, j))
 
-                            attack_str = AttackString(prefix=prefix, pump=pump, suffix=suffix)
-                            explanation = (
-                                f"Exponential Ambiguity (EDA) detected at state '{u}'. "
-                                f"Multiple distinct cycles match the symbol sequence '{pump}', "
-                                f"allowing the backtracking engine to explore 2^N paths on repeated input."
-                            )
-                            cand = (
-                                sorted(list(offending_states_set)),
-                                sorted(list(offending_trans_set)),
-                                attack_str,
-                                explanation,
-                            )
-                            if best_eda is None or len(pump) < len(best_eda[2].pump):
-                                best_eda = cand
-                            if len(pump) == 1:
-                                return best_eda
-                            break
+        start_nodes: Set[Tuple[int, int]] = set()
+        accept_nodes: Set[Tuple[int, int]] = set()
+        for i, j in nodes:
+            e_i = sym_trans[i]
+            e_j = sym_trans[j]
+            if count_eps_paths(start, e_i.from_state) > 0 and count_eps_paths(start, e_j.from_state) > 0:
+                start_nodes.add((i, j))
+            if any(count_eps_paths(e_i.to_state, acc) > 0 for acc in accepts) and any(
+                count_eps_paths(e_j.to_state, acc) > 0 for acc in accepts
+            ):
+                accept_nodes.add((i, j))
 
-                    # Limit search depth for performance
-                    if len(word) > 3 or len(path_trans) >= 12:
-                        continue
+        reach = set(start_nodes)
+        q = deque(list(start_nodes))
+        while q:
+            curr = q.popleft()
+            for nxt in adj.get(curr, []):
+                if nxt not in reach:
+                    reach.add(nxt)
+                    q.append(nxt)
 
-                    state_key = (curr, word, path_trans)
-                    if state_key in visited_states:
-                        continue
-                    visited_states.add(state_key)
+        rev_adj: Dict[Tuple[int, int], List[Tuple[int, int]]] = defaultdict(list)
+        for src, tgts in adj.items():
+            for t in tgts:
+                rev_adj[t].append(src)
 
-                    for t in trans_by_src.get(curr, []):
-                        if t.to_state in comp:
-                            sym_token = t.symbol if t.symbol not in ("ε", "") else ""
-                            q.append((t.to_state, word + sym_token, path_trans + (t.id,)))
+        coreach = set(accept_nodes & reach)
+        q = deque(list(coreach))
+        while q:
+            curr = q.popleft()
+            for prev in rev_adj.get(curr, []):
+                if prev in reach and prev not in coreach:
+                    coreach.add(prev)
+                    q.append(prev)
 
-        return best_eda
+        useful_g2 = reach & coreach
+        if not useful_g2:
+            return (
+                AmbiguityRisk.LINEAR,
+                [],
+                [],
+                None,
+                1,
+                "Pair graph G2 has no reachable accepting paths; language is linear.",
+            )
 
-    def _detect_polynomial_ambiguity(
-        self,
-        nfa: Automaton,
-        useful: Set[str],
-        useful_adj: Dict[str, Set[str]],
-        trans_by_src: Dict[str, List[Transition]],
-        sccs: List[Set[str]],
-        scc_map: Dict[str, int],
-        start_time: float,
-    ) -> Optional[Tuple[List[str], List[str], AttackString, int, str]]:
-        """
-        Detects Polynomial Ambiguity (PDA):
-        Distinct SCCs (e.g., C1 and C2 with C1 reaching C2) can both iterate on the same symbol,
-        creating chained ambiguity of degree d >= 2.
-        """
-        # Map each SCC to the non-empty alphabet symbols it can cycle on
-        scc_cyclic_symbols: Dict[int, Dict[str, List[str]]] = {}
+        trimmed_adj = {n: [t for t in adj.get(n, []) if t in useful_g2] for n in useful_g2}
 
-        for scc_idx, comp in enumerate(sccs):
-            for u in comp:
-                for t in trans_by_src.get(u, []):
-                    if t.symbol not in ("ε", "") and t.to_state in comp:
-                        # Direct self-loop or cycle within same SCC
-                        if t.from_state == t.to_state or self._can_reach_within_scc(
-                            t.to_state, t.from_state, comp, trans_by_src
-                        ):
-                            scc_cyclic_symbols.setdefault(scc_idx, {}).setdefault(t.symbol, []).append(t.id)
+        # Tarjan SCC on G2
+        idx = 0
+        indices: Dict[Tuple[int, int], int] = {}
+        lowlink: Dict[Tuple[int, int], int] = {}
+        on_stack: Set[Tuple[int, int]] = set()
+        s_stack: List[Tuple[int, int]] = []
+        g2_sccs: List[Set[Tuple[int, int]]] = []
 
-        # Check for directed reachability C1 -> C2 where both cycle on the same symbol
-        for scc1, sym_dict1 in scc_cyclic_symbols.items():
-            for scc2, sym_dict2 in scc_cyclic_symbols.items():
-                if scc1 != scc2:
-                    common_symbols = set(sym_dict1.keys()) & set(sym_dict2.keys())
-                    if common_symbols:
-                        # Check reachability scc1 -> scc2
-                        u_source = next(iter(sccs[scc1]))
-                        v_target = next(iter(sccs[scc2]))
+        for node in useful_g2:
+            if node not in indices:
+                call_stack = [(node, 0, trimmed_adj.get(node, []))]
+                indices[node] = lowlink[node] = idx
+                idx += 1
+                s_stack.append(node)
+                on_stack.add(node)
+                while call_stack:
+                    u_pair, ci, neighbors = call_stack[-1]
+                    if ci < len(neighbors):
+                        v_pair = neighbors[ci]
+                        call_stack[-1] = (u_pair, ci + 1, neighbors)
+                        if v_pair not in indices:
+                            indices[v_pair] = lowlink[v_pair] = idx
+                            idx += 1
+                            s_stack.append(v_pair)
+                            on_stack.add(v_pair)
+                            call_stack.append((v_pair, 0, trimmed_adj.get(v_pair, [])))
+                        elif v_pair in on_stack:
+                            lowlink[u_pair] = min(lowlink[u_pair], indices[v_pair])
+                    else:
+                        call_stack.pop()
+                        if call_stack:
+                            p = call_stack[-1][0]
+                            lowlink[p] = min(lowlink[p], lowlink[u_pair])
+                        if lowlink[u_pair] == indices[u_pair]:
+                            scc: Set[Tuple[int, int]] = set()
+                            while True:
+                                w = s_stack.pop()
+                                on_stack.remove(w)
+                                scc.add(w)
+                                if w == u_pair:
+                                    break
+                            g2_sccs.append(scc)
 
-                        if self._can_reach_nodes(useful_adj, u_source, v_target):
-                            pump_sym = sorted(list(common_symbols))[0]
-                            prefix = self._find_prefix_to_node(nfa, useful, trans_by_src, u_source)
-                            suffix = self._synthesize_failing_suffix(nfa, useful, trans_by_src, [v_target])
+        has_eda = False
+        has_pda = False
+        eda_scc = None
+        pda_scc = None
 
-                            offending_states = sorted(list(sccs[scc1] | sccs[scc2]))[:10]
-                            offending_trans = sorted(list(set(sym_dict1[pump_sym] + sym_dict2[pump_sym])))
+        for scc in g2_sccs:
+            is_cyclic = len(scc) > 1 or any(n in trimmed_adj.get(n, []) for n in scc)
+            if not is_cyclic:
+                continue
+            diag = {p for p in scc if p[0] == p[1]}
+            off_diag = {p for p in scc if p[0] != p[1]}
 
-                            attack_str = AttackString(prefix=prefix, pump=pump_sym, suffix=suffix)
-                            deg = 2
-                            explanation = (
-                                f"Polynomial Ambiguity (PDA) of degree {deg} detected. "
-                                f"Chained components (SCC {scc1} and SCC {scc2}) both cycle on symbol '{pump_sym}', "
-                                f"causing polynomial O(N^{deg}) backtracking behavior."
-                            )
-                            return (
-                                offending_states,
-                                offending_trans,
-                                attack_str,
-                                deg,
-                                explanation,
-                            )
+            if (diag and off_diag) or any(p in multi_edge for p in diag):
+                has_eda = True
+                eda_scc = scc
+                break
+            elif off_diag:
+                has_pda = True
+                if pda_scc is None:
+                    pda_scc = scc
 
-        return None
+        target_scc = eda_scc if has_eda else (pda_scc if has_pda else None)
+        if target_scc:
+            trans_indices = set()
+            for p in target_scc:
+                trans_indices.add(p[0])
+                trans_indices.add(p[1])
+            part_trans = [sym_trans[i] for i in trans_indices]
+            offending_trans = sorted(list(set(t.id for t in part_trans)))
+            offending_states = sorted(
+                list(
+                    set(t.from_state for t in part_trans)
+                    | set(t.to_state for t in part_trans)
+                )
+            )
+            pump_sym = part_trans[0].symbol
+            rep_state = part_trans[0].from_state
+            prefix = self._find_prefix_to_node(nfa, useful, trans_by_src, rep_state)
+            suffix = self._synthesize_failing_suffix(nfa, useful, trans_by_src, [rep_state])
+            attack_str = AttackString(prefix=prefix, pump=pump_sym, suffix=suffix)
+
+            if has_eda:
+                explanation = (
+                    f"Exponential Ambiguity (EDA) detected via Weber & Seidl (1991) pair-graph criterion. "
+                    f"A strongly connected component contains overlapping parallel cycles on symbol '{pump_sym}', "
+                    f"allowing 2^N distinct paths for repeated input."
+                )
+                return (AmbiguityRisk.EXPONENTIAL, offending_states, offending_trans, attack_str, None, explanation)
+            else:
+                deg = 2
+                explanation = (
+                    f"Polynomial Ambiguity (PDA) of degree {deg} detected via Weber & Seidl (1991) off-diagonal cycle criterion. "
+                    f"Off-diagonal product component cycles on symbol '{pump_sym}', allowing polynomial O(N^{deg}) paths."
+                )
+                return (AmbiguityRisk.POLYNOMIAL, offending_states, offending_trans, attack_str, deg, explanation)
+
+        return (
+            AmbiguityRisk.LINEAR,
+            [],
+            [],
+            None,
+            1,
+            "Exact ambiguity analysis confirmed linear complexity: all reachable cycles in G2 are purely diagonal.",
+        )
 
     def _can_reach_within_scc(
         self, src: str, dst: str, scc: Set[str], trans_by_src: Dict[str, List[Transition]]

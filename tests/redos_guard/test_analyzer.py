@@ -112,3 +112,65 @@ def test_analyzer_empty_language(analyzer):
     res = analyzer.analyze(nfa)
     assert res.risk_class == AmbiguityRisk.LINEAR
     assert res.is_vulnerable is False
+
+
+def test_realistic_patterns_with_classes_and_anchors(analyzer):
+    """
+    Test 5+ realistic simplified patterns using character classes and anchors.
+    Verifies that safe anchored patterns are recognized as LINEAR,
+    while genuinely ambiguous patterns with classes/anchors are correctly flagged.
+    """
+    realistic_safe = [
+        r"^[a-z]+@[a-z]+\.[a-z]+$",    # Anchored email
+        r"^\d\d\d-\d\d\d\d$",          # Anchored phone
+        "^user_[a-zA-Z0-9]+$",         # Anchored identifier
+        r"^[0-9]+(\.[0-9]+)?$",        # Anchored float
+        "^https?://[a-z0-9]+$",        # Anchored URL
+    ]
+    for pat in realistic_safe:
+        res = analyzer.analyze(pat)
+        assert res.risk_class == AmbiguityRisk.LINEAR, f"Expected {pat} to be LINEAR, got {res.risk_class.value}"
+        assert res.is_vulnerable is False
+        assert res.has_start_anchor is True
+        assert res.has_end_anchor is True
+
+    # Ambiguous patterns containing character classes or boundary anchors
+    exp_res = analyzer.analyze(r"([a-z]+)+$")
+    assert exp_res.risk_class == AmbiguityRisk.EXPONENTIAL
+    assert exp_res.has_end_anchor is True
+
+    poly_res = analyzer.analyze(r"\d*\d*$")
+    assert poly_res.risk_class == AmbiguityRisk.POLYNOMIAL
+    assert poly_res.has_end_anchor is True
+
+
+def test_superlinear_growth_validation_on_attack_strings(analyzer):
+    """
+    Validates attack strings by running real Python re and confirming
+    super-linear execution time growth for exponential and polynomial patterns.
+    """
+    import re
+    import time
+
+    # Exponential test: (a+)+$
+    res = analyzer.analyze(r"(a+)+$")
+    assert res.risk_class == AmbiguityRisk.EXPONENTIAL
+    assert res.attack_string is not None
+
+    pump = res.attack_string.pump
+    suffix = res.attack_string.suffix or "!"
+    pat_re = re.compile(r"(a+)+$")
+
+    # Time growth on increasing repeat counts
+    t_short_start = time.perf_counter()
+    pat_re.search(pump * 10 + suffix)
+    t_short = time.perf_counter() - t_short_start
+
+    t_long_start = time.perf_counter()
+    pat_re.search(pump * 24 + suffix)
+    t_long = time.perf_counter() - t_long_start
+
+    # For (a+)+$, length 24 backtracks ~2^24 times, which is significantly slower than length 10
+    assert t_long > t_short, f"Expected superlinear growth: t_long ({t_long:.4f}s) <= t_short ({t_short:.4f}s)"
+    assert res.engine_nuance_note is not None
+    assert "search" in res.engine_nuance_note

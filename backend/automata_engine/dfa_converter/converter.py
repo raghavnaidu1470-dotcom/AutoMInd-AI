@@ -172,6 +172,8 @@ class DFAConverter:
             state_count=len(states),
             transition_count=len(transitions),
             is_minimized=False,
+            has_start_anchor=nfa.metadata.has_start_anchor if nfa.metadata else False,
+            has_end_anchor=nfa.metadata.has_end_anchor if nfa.metadata else False,
             description="Constructed using Subset Construction (Powerset) Algorithm",
         )
 

@@ -1,0 +1,52 @@
+{
+  "train_samples": 67,
+  "test_samples": 34,
+  "test_accuracy": 0.6176,
+  "per_class_metrics": {
+    "linear": {
+      "true_positive": 1,
+      "false_positive": 0,
+      "false_negative": 10,
+      "total_actual": 11,
+      "precision": 1.0,
+      "recall": 0.0909,
+      "f1_score": 0.1667
+    },
+    "polynomial": {
+      "true_positive": 8,
+      "false_positive": 5,
+      "false_negative": 3,
+      "total_actual": 11,
+      "precision": 0.6154,
+      "recall": 0.7273,
+      "f1_score": 0.6667
+    },
+    "exponential": {
+      "true_positive": 12,
+      "false_positive": 8,
+      "false_negative": 0,
+      "total_actual": 12,
+      "precision": 0.6,
+      "recall": 1.0,
+      "f1_score": 0.75
+    }
+  },
+  "confusion_matrix": {
+    "linear": {
+      "linear": 1,
+      "polynomial": 5,
+      "exponential": 5
+    },
+    "polynomial": {
+      "linear": 0,
+      "polynomial": 8,
+      "exponential": 3
+    },
+    "exponential": {
+      "linear": 0,
+      "polynomial": 0,
+      "exponential": 12
+    }
+  },
+  "model_path": "storage/models/redos_gnn.pt"
+}
