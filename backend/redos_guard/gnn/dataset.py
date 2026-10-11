@@ -194,16 +194,47 @@ def build_labeled_family_dataset(raw_list: List[Dict[str, Any]]) -> List[Dict[st
     return dataset
 
 
-def get_family_stratified_dataset() -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+def get_family_stratified_dataset(target_count: int = 3200) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
     """
-    Returns (train_dataset, test_dataset) strictly split by family.
+    Returns (train_dataset, test_dataset) strictly split by family from grammar-based generator.
 
     Guarantees:
       1. train_families.isdisjoint(test_families)
       2. train_templates.isdisjoint(test_templates)
+      3. >= 3000 total regular expressions generated and labeled by exact analyzer.
     """
-    train_data = build_labeled_family_dataset(TRAIN_FAMILIES_DATA)
-    test_data = build_labeled_family_dataset(TEST_FAMILIES_DATA)
+    from backend.redos_guard.gnn.generator import generate_grammar_dataset
+    data = generate_grammar_dataset(target_count=target_count)
+
+    train_data = []
+    for item in data.get("train", []):
+        pat = item.get("pattern") or item.get("regex")
+        train_data.append(
+            {
+                "regex": pat,
+                "pattern": pat,
+                "family": item["family"],
+                "template": item["template"],
+                "label": RISK_CLASS_TO_IDX[item["risk_class"]],
+                "risk_class": item["risk_class"],
+                "is_vulnerable": item.get("is_vulnerable", item["risk_class"] != "linear"),
+            }
+        )
+
+    test_data = []
+    for item in data.get("test", []):
+        pat = item.get("pattern") or item.get("regex")
+        test_data.append(
+            {
+                "regex": pat,
+                "pattern": pat,
+                "family": item["family"],
+                "template": item["template"],
+                "label": RISK_CLASS_TO_IDX[item["risk_class"]],
+                "risk_class": item["risk_class"],
+                "is_vulnerable": item.get("is_vulnerable", item["risk_class"] != "linear"),
+            }
+        )
 
     train_families = {item["family"] for item in train_data}
     test_families = {item["family"] for item in test_data}

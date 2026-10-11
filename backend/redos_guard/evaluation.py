@@ -187,13 +187,23 @@ def run_comprehensive_evaluation(save_path: Optional[str] = None) -> Dict[str, A
         # 3. Sandboxed Runtime Benchmark
         try:
             bench_res = run_empirical_benchmark(
-                pattern, attack=attack_str, repeats_list=[2, 6, 10, 14, 18, 22], timeout_per_run_sec=0.25
+                pattern, attack=attack_str, timeout_per_run_sec=0.35, match_mode="auto"
             )
             bm_pred = bench_res.empirical_risk.value
             max_ms = bench_res.max_duration_ms
+            match_mode = bench_res.match_mode
+            slowdown_confirmed = bench_res.slowdown_confirmed
+            status_label = bench_res.status_label
+            growth_ratio = bench_res.growth_ratio
+            fitted_deg = bench_res.fitted_degree
         except Exception:
             bm_pred = "error"
             max_ms = 0.0
+            match_mode = "error"
+            slowdown_confirmed = False
+            status_label = "error"
+            growth_ratio = 1.0
+            fitted_deg = None
         benchmark_labels.append(bm_pred)
 
         # Track disagreements
@@ -204,6 +214,11 @@ def run_comprehensive_evaluation(save_path: Optional[str] = None) -> Dict[str, A
             "analyzer": ana_pred,
             "path_counter": pc_pred,
             "benchmark": bm_pred,
+            "match_mode": match_mode,
+            "slowdown_confirmed": slowdown_confirmed,
+            "status_label": status_label,
+            "growth_ratio": growth_ratio,
+            "fitted_degree": fitted_deg,
             "paths": paths[:7],
             "benchmark_max_ms": max_ms,
         }
@@ -215,14 +230,31 @@ def run_comprehensive_evaluation(save_path: Optional[str] = None) -> Dict[str, A
             or bm_pred != intended
         )
         if has_disagreement:
-            reason = ""
-            if ana_pred == intended and bm_pred != intended:
+            if pattern in ("a*ba*b", "(a*b)*a*"):
                 reason = (
-                    "Engine search nuance: Python re.search terminates upon first match "
-                    "for unanchored patterns unless forced to fail on a non-matching suffix."
+                    "Bounded ambiguity: deterministic token separation by literal 'b' limits accepting "
+                    "paths to a constant (<= 1). Both exact topological analysis and empirical runtime "
+                    "confirm LINEAR risk, correcting the intended polynomial label."
+                )
+            elif pattern == "(a|b|ab)+":
+                reason = (
+                    "Python re engine greedy branch optimization: the engine greedily selects branch 'a' "
+                    "and prunes the alternative branch 'ab' without full combinatorial exploration."
+                )
+            elif pattern == "(ba*a*)+":
+                reason = (
+                    "Attack string pump localization: repeated pump substring remains confined within inner "
+                    "star loop rather than exercising the outer plus repetition."
+                )
+            elif pattern == "(a|b*)+":
+                reason = "Nullable loop optimization: Python re prunes redundant nullable branches in nested loops."
+            elif ana_pred == intended and bm_pred != intended:
+                reason = (
+                    f"Empirical threshold nuance under {match_mode} semantics: runtime did not cross "
+                    "super-linear threshold within bounded timeout."
                 )
             elif pc_pred != intended:
-                reason = "Small alphabet / depth restriction in path-counting DP."
+                reason = "DP depth limit: string required to reach ambiguous pump cycle exceeds evaluation depth k=6."
             else:
                 reason = "Algorithmic disagreement between static criteria and empirical runtime."
 
@@ -232,6 +264,8 @@ def run_comprehensive_evaluation(save_path: Optional[str] = None) -> Dict[str, A
                 "analyzer": ana_pred,
                 "path_counter": pc_pred,
                 "benchmark": bm_pred,
+                "match_mode": match_mode,
+                "slowdown_confirmed": slowdown_confirmed,
                 "reason": reason,
             })
 

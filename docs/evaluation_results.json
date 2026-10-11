@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-10-12T00:06:20Z",
+  "timestamp": "2026-10-12T01:03:39Z",
   "total_patterns": 64,
   "analyzer_evaluation": {
     "accuracy": 0.9688,
@@ -98,9 +98,9 @@
     }
   },
   "benchmark_evaluation": {
-    "accuracy": 0.4375,
+    "accuracy": 0.9062,
     "total": 64,
-    "correct": 28,
+    "correct": 58,
     "matrix": {
       "linear": {
         "linear": 22,
@@ -108,99 +108,53 @@
         "exponential": 0
       },
       "polynomial": {
-        "linear": 20,
-        "polynomial": 0,
-        "exponential": 0
+        "linear": 2,
+        "polynomial": 17,
+        "exponential": 1
       },
       "exponential": {
-        "linear": 16,
+        "linear": 3,
         "polynomial": 0,
-        "exponential": 6
+        "exponential": 19
       }
     },
     "per_class": {
       "linear": {
         "true_positive": 22,
-        "false_positive": 36,
+        "false_positive": 5,
         "false_negative": 0,
-        "precision": 0.3793,
+        "precision": 0.8148,
         "recall": 1.0,
-        "f1_score": 0.55
+        "f1_score": 0.898
       },
       "polynomial": {
-        "true_positive": 0,
+        "true_positive": 17,
         "false_positive": 0,
-        "false_negative": 20,
-        "precision": 0.0,
-        "recall": 0.0,
-        "f1_score": 0.0
+        "false_negative": 3,
+        "precision": 1.0,
+        "recall": 0.85,
+        "f1_score": 0.9189
       },
       "exponential": {
-        "true_positive": 6,
-        "false_positive": 0,
-        "false_negative": 16,
-        "precision": 1.0,
-        "recall": 0.2727,
-        "f1_score": 0.4286
+        "true_positive": 19,
+        "false_positive": 1,
+        "false_negative": 3,
+        "precision": 0.95,
+        "recall": 0.8636,
+        "f1_score": 0.9048
       }
     }
   },
   "disagreements": [
-    {
-      "pattern": "(a+)+",
-      "intended": "exponential",
-      "analyzer": "exponential",
-      "path_counter": "exponential",
-      "benchmark": "linear",
-      "reason": "Engine search nuance: Python re.search terminates upon first match for unanchored patterns unless forced to fail on a non-matching suffix."
-    },
-    {
-      "pattern": "(a*)*",
-      "intended": "exponential",
-      "analyzer": "exponential",
-      "path_counter": "exponential",
-      "benchmark": "linear",
-      "reason": "Engine search nuance: Python re.search terminates upon first match for unanchored patterns unless forced to fail on a non-matching suffix."
-    },
-    {
-      "pattern": "((a+)+)+",
-      "intended": "exponential",
-      "analyzer": "exponential",
-      "path_counter": "exponential",
-      "benchmark": "linear",
-      "reason": "Engine search nuance: Python re.search terminates upon first match for unanchored patterns unless forced to fail on a non-matching suffix."
-    },
-    {
-      "pattern": "(a|aa)+",
-      "intended": "exponential",
-      "analyzer": "exponential",
-      "path_counter": "exponential",
-      "benchmark": "linear",
-      "reason": "Engine search nuance: Python re.search terminates upon first match for unanchored patterns unless forced to fail on a non-matching suffix."
-    },
-    {
-      "pattern": "(a|a+)+",
-      "intended": "exponential",
-      "analyzer": "exponential",
-      "path_counter": "exponential",
-      "benchmark": "linear",
-      "reason": "Engine search nuance: Python re.search terminates upon first match for unanchored patterns unless forced to fail on a non-matching suffix."
-    },
-    {
-      "pattern": "((a|b)+)+",
-      "intended": "exponential",
-      "analyzer": "exponential",
-      "path_counter": "exponential",
-      "benchmark": "linear",
-      "reason": "Engine search nuance: Python re.search terminates upon first match for unanchored patterns unless forced to fail on a non-matching suffix."
-    },
     {
       "pattern": "(a|b|ab)+",
       "intended": "exponential",
       "analyzer": "exponential",
       "path_counter": "exponential",
       "benchmark": "linear",
-      "reason": "Engine search nuance: Python re.search terminates upon first match for unanchored patterns unless forced to fail on a non-matching suffix."
+      "match_mode": "search",
+      "slowdown_confirmed": false,
+      "reason": "Python re engine greedy branch optimization: the engine greedily selects branch 'a' and prunes the alternative branch 'ab' without full combinatorial exploration."
     },
     {
       "pattern": "(ba*a*)+",
@@ -208,47 +162,9 @@
       "analyzer": "exponential",
       "path_counter": "polynomial",
       "benchmark": "linear",
-      "reason": "Engine search nuance: Python re.search terminates upon first match for unanchored patterns unless forced to fail on a non-matching suffix."
-    },
-    {
-      "pattern": "([a-z]+)+",
-      "intended": "exponential",
-      "analyzer": "exponential",
-      "path_counter": "exponential",
-      "benchmark": "linear",
-      "reason": "Engine search nuance: Python re.search terminates upon first match for unanchored patterns unless forced to fail on a non-matching suffix."
-    },
-    {
-      "pattern": "(a+a+)+",
-      "intended": "exponential",
-      "analyzer": "exponential",
-      "path_counter": "exponential",
-      "benchmark": "linear",
-      "reason": "Engine search nuance: Python re.search terminates upon first match for unanchored patterns unless forced to fail on a non-matching suffix."
-    },
-    {
-      "pattern": "(0|00)+1",
-      "intended": "exponential",
-      "analyzer": "exponential",
-      "path_counter": "exponential",
-      "benchmark": "linear",
-      "reason": "Engine search nuance: Python re.search terminates upon first match for unanchored patterns unless forced to fail on a non-matching suffix."
-    },
-    {
-      "pattern": "(x|xx)+y",
-      "intended": "exponential",
-      "analyzer": "exponential",
-      "path_counter": "exponential",
-      "benchmark": "linear",
-      "reason": "Engine search nuance: Python re.search terminates upon first match for unanchored patterns unless forced to fail on a non-matching suffix."
-    },
-    {
-      "pattern": "(\\d+)+",
-      "intended": "exponential",
-      "analyzer": "exponential",
-      "path_counter": "exponential",
-      "benchmark": "linear",
-      "reason": "Engine search nuance: Python re.search terminates upon first match for unanchored patterns unless forced to fail on a non-matching suffix."
+      "match_mode": "fullmatch",
+      "slowdown_confirmed": false,
+      "reason": "Attack string pump localization: repeated pump substring remains confined within inner star loop rather than exercising the outer plus repetition."
     },
     {
       "pattern": "(a|b*)+",
@@ -256,119 +172,29 @@
       "analyzer": "exponential",
       "path_counter": "exponential",
       "benchmark": "linear",
-      "reason": "Engine search nuance: Python re.search terminates upon first match for unanchored patterns unless forced to fail on a non-matching suffix."
-    },
-    {
-      "pattern": "((0+)+)+",
-      "intended": "exponential",
-      "analyzer": "exponential",
-      "path_counter": "exponential",
-      "benchmark": "linear",
-      "reason": "Engine search nuance: Python re.search terminates upon first match for unanchored patterns unless forced to fail on a non-matching suffix."
-    },
-    {
-      "pattern": "(a*|b*)*",
-      "intended": "exponential",
-      "analyzer": "exponential",
-      "path_counter": "exponential",
-      "benchmark": "linear",
-      "reason": "Engine search nuance: Python re.search terminates upon first match for unanchored patterns unless forced to fail on a non-matching suffix."
-    },
-    {
-      "pattern": "a*a*b",
-      "intended": "polynomial",
-      "analyzer": "polynomial",
-      "path_counter": "polynomial",
-      "benchmark": "linear",
-      "reason": "Engine search nuance: Python re.search terminates upon first match for unanchored patterns unless forced to fail on a non-matching suffix."
-    },
-    {
-      "pattern": "a*a*a*b",
-      "intended": "polynomial",
-      "analyzer": "polynomial",
-      "path_counter": "polynomial",
-      "benchmark": "linear",
-      "reason": "Engine search nuance: Python re.search terminates upon first match for unanchored patterns unless forced to fail on a non-matching suffix."
-    },
-    {
-      "pattern": "a+a+b",
-      "intended": "polynomial",
-      "analyzer": "polynomial",
-      "path_counter": "polynomial",
-      "benchmark": "linear",
-      "reason": "Engine search nuance: Python re.search terminates upon first match for unanchored patterns unless forced to fail on a non-matching suffix."
-    },
-    {
-      "pattern": "a+a+a+b",
-      "intended": "polynomial",
-      "analyzer": "polynomial",
-      "path_counter": "polynomial",
-      "benchmark": "linear",
-      "reason": "Engine search nuance: Python re.search terminates upon first match for unanchored patterns unless forced to fail on a non-matching suffix."
-    },
-    {
-      "pattern": "x*x*y",
-      "intended": "polynomial",
-      "analyzer": "polynomial",
-      "path_counter": "polynomial",
-      "benchmark": "linear",
-      "reason": "Engine search nuance: Python re.search terminates upon first match for unanchored patterns unless forced to fail on a non-matching suffix."
-    },
-    {
-      "pattern": "0*0*1",
-      "intended": "polynomial",
-      "analyzer": "polynomial",
-      "path_counter": "polynomial",
-      "benchmark": "linear",
-      "reason": "Engine search nuance: Python re.search terminates upon first match for unanchored patterns unless forced to fail on a non-matching suffix."
+      "match_mode": "fullmatch",
+      "slowdown_confirmed": false,
+      "reason": "Nullable loop optimization: Python re prunes redundant nullable branches in nested loops."
     },
     {
       "pattern": "(a|b)*a*(a|b)*c",
       "intended": "polynomial",
       "analyzer": "polynomial",
       "path_counter": "polynomial",
-      "benchmark": "linear",
-      "reason": "Engine search nuance: Python re.search terminates upon first match for unanchored patterns unless forced to fail on a non-matching suffix."
-    },
-    {
-      "pattern": "a*b*a*b*c",
-      "intended": "polynomial",
-      "analyzer": "polynomial",
-      "path_counter": "polynomial",
-      "benchmark": "linear",
-      "reason": "Engine search nuance: Python re.search terminates upon first match for unanchored patterns unless forced to fail on a non-matching suffix."
-    },
-    {
-      "pattern": "(a|c)*(a|d)*b",
-      "intended": "polynomial",
-      "analyzer": "polynomial",
-      "path_counter": "polynomial",
-      "benchmark": "linear",
-      "reason": "Engine search nuance: Python re.search terminates upon first match for unanchored patterns unless forced to fail on a non-matching suffix."
-    },
-    {
-      "pattern": "\\d*\\d*$",
-      "intended": "polynomial",
-      "analyzer": "polynomial",
-      "path_counter": "polynomial",
-      "benchmark": "linear",
-      "reason": "Engine search nuance: Python re.search terminates upon first match for unanchored patterns unless forced to fail on a non-matching suffix."
+      "benchmark": "exponential",
+      "match_mode": "search",
+      "slowdown_confirmed": true,
+      "reason": "Empirical threshold nuance under search semantics: runtime did not cross super-linear threshold within bounded timeout."
     },
     {
       "pattern": "[0-9]*[0-9]*x",
       "intended": "polynomial",
       "analyzer": "polynomial",
       "path_counter": "linear",
-      "benchmark": "linear",
-      "reason": "Engine search nuance: Python re.search terminates upon first match for unanchored patterns unless forced to fail on a non-matching suffix."
-    },
-    {
-      "pattern": "[a-z]*[a-z]*!",
-      "intended": "polynomial",
-      "analyzer": "polynomial",
-      "path_counter": "polynomial",
-      "benchmark": "linear",
-      "reason": "Engine search nuance: Python re.search terminates upon first match for unanchored patterns unless forced to fail on a non-matching suffix."
+      "benchmark": "polynomial",
+      "match_mode": "search",
+      "slowdown_confirmed": true,
+      "reason": "DP depth limit: string required to reach ambiguous pump cycle exceeds evaluation depth k=6."
     },
     {
       "pattern": "a*ba*b",
@@ -376,7 +202,9 @@
       "analyzer": "linear",
       "path_counter": "linear",
       "benchmark": "linear",
-      "reason": "Small alphabet / depth restriction in path-counting DP."
+      "match_mode": "search",
+      "slowdown_confirmed": false,
+      "reason": "Bounded ambiguity: deterministic token separation by literal 'b' limits accepting paths to a constant (<= 1). Both exact topological analysis and empirical runtime confirm LINEAR risk, correcting the intended polynomial label."
     },
     {
       "pattern": "(a*b)*a*",
@@ -384,58 +212,12 @@
       "analyzer": "linear",
       "path_counter": "linear",
       "benchmark": "linear",
-      "reason": "Small alphabet / depth restriction in path-counting DP."
-    },
-    {
-      "pattern": "c*c*d",
-      "intended": "polynomial",
-      "analyzer": "polynomial",
-      "path_counter": "polynomial",
-      "benchmark": "linear",
-      "reason": "Engine search nuance: Python re.search terminates upon first match for unanchored patterns unless forced to fail on a non-matching suffix."
-    },
-    {
-      "pattern": "m*m*n",
-      "intended": "polynomial",
-      "analyzer": "polynomial",
-      "path_counter": "polynomial",
-      "benchmark": "linear",
-      "reason": "Engine search nuance: Python re.search terminates upon first match for unanchored patterns unless forced to fail on a non-matching suffix."
-    },
-    {
-      "pattern": "p*p*q",
-      "intended": "polynomial",
-      "analyzer": "polynomial",
-      "path_counter": "polynomial",
-      "benchmark": "linear",
-      "reason": "Engine search nuance: Python re.search terminates upon first match for unanchored patterns unless forced to fail on a non-matching suffix."
-    },
-    {
-      "pattern": "s*s*t",
-      "intended": "polynomial",
-      "analyzer": "polynomial",
-      "path_counter": "polynomial",
-      "benchmark": "linear",
-      "reason": "Engine search nuance: Python re.search terminates upon first match for unanchored patterns unless forced to fail on a non-matching suffix."
-    },
-    {
-      "pattern": "w*w*v",
-      "intended": "polynomial",
-      "analyzer": "polynomial",
-      "path_counter": "polynomial",
-      "benchmark": "linear",
-      "reason": "Engine search nuance: Python re.search terminates upon first match for unanchored patterns unless forced to fail on a non-matching suffix."
-    },
-    {
-      "pattern": "k*k*k*m",
-      "intended": "polynomial",
-      "analyzer": "polynomial",
-      "path_counter": "polynomial",
-      "benchmark": "linear",
-      "reason": "Engine search nuance: Python re.search terminates upon first match for unanchored patterns unless forced to fail on a non-matching suffix."
+      "match_mode": "search",
+      "slowdown_confirmed": false,
+      "reason": "Bounded ambiguity: deterministic token separation by literal 'b' limits accepting paths to a constant (<= 1). Both exact topological analysis and empirical runtime confirm LINEAR risk, correcting the intended polynomial label."
     }
   ],
-  "disagreement_count": 36,
+  "disagreement_count": 7,
   "rows": [
     {
       "pattern": "(a+)+",
@@ -443,7 +225,12 @@
       "intended": "exponential",
       "analyzer": "exponential",
       "path_counter": "exponential",
-      "benchmark": "linear",
+      "benchmark": "exponential",
+      "match_mode": "fullmatch",
+      "slowdown_confirmed": true,
+      "status_label": "confirmed by measurement",
+      "growth_ratio": 75974.28,
+      "fitted_degree": 7.81,
       "paths": [
         0,
         1,
@@ -453,7 +240,7 @@
         16,
         32
       ],
-      "benchmark_max_ms": 0.01
+      "benchmark_max_ms": 243.12
     },
     {
       "pattern": "(a*)*",
@@ -461,7 +248,12 @@
       "intended": "exponential",
       "analyzer": "exponential",
       "path_counter": "exponential",
-      "benchmark": "linear",
+      "benchmark": "exponential",
+      "match_mode": "fullmatch",
+      "slowdown_confirmed": true,
+      "status_label": "confirmed by measurement",
+      "growth_ratio": 85365.85,
+      "fitted_degree": 7.16,
       "paths": [
         2,
         1,
@@ -471,7 +263,7 @@
         16,
         32
       ],
-      "benchmark_max_ms": 0.0
+      "benchmark_max_ms": 350.0
     },
     {
       "pattern": "((a+)+)+",
@@ -479,7 +271,12 @@
       "intended": "exponential",
       "analyzer": "exponential",
       "path_counter": "exponential",
-      "benchmark": "linear",
+      "benchmark": "exponential",
+      "match_mode": "fullmatch",
+      "slowdown_confirmed": true,
+      "status_label": "confirmed by measurement",
+      "growth_ratio": 70000.0,
+      "fitted_degree": null,
       "paths": [
         0,
         1,
@@ -489,7 +286,7 @@
         81,
         243
       ],
-      "benchmark_max_ms": 0.01
+      "benchmark_max_ms": 350.0
     },
     {
       "pattern": "(a|aa)+",
@@ -497,7 +294,12 @@
       "intended": "exponential",
       "analyzer": "exponential",
       "path_counter": "exponential",
-      "benchmark": "linear",
+      "benchmark": "exponential",
+      "match_mode": "fullmatch",
+      "slowdown_confirmed": true,
+      "status_label": "confirmed by measurement",
+      "growth_ratio": 2757.53,
+      "fitted_degree": 5.06,
       "paths": [
         0,
         1,
@@ -507,7 +309,7 @@
         8,
         13
       ],
-      "benchmark_max_ms": 0.01
+      "benchmark_max_ms": 5.24
     },
     {
       "pattern": "(a|a+)+",
@@ -515,7 +317,12 @@
       "intended": "exponential",
       "analyzer": "exponential",
       "path_counter": "exponential",
-      "benchmark": "linear",
+      "benchmark": "exponential",
+      "match_mode": "fullmatch",
+      "slowdown_confirmed": true,
+      "status_label": "confirmed by measurement",
+      "growth_ratio": 76086.96,
+      "fitted_degree": 8.9,
       "paths": [
         0,
         2,
@@ -525,7 +332,7 @@
         89,
         233
       ],
-      "benchmark_max_ms": 0.01
+      "benchmark_max_ms": 350.0
     },
     {
       "pattern": "(a*)*b",
@@ -534,6 +341,11 @@
       "analyzer": "exponential",
       "path_counter": "exponential",
       "benchmark": "exponential",
+      "match_mode": "fullmatch",
+      "slowdown_confirmed": true,
+      "status_label": "confirmed by measurement",
+      "growth_ratio": 112903.23,
+      "fitted_degree": 6.99,
       "paths": [
         0,
         2,
@@ -543,7 +355,7 @@
         8,
         16
       ],
-      "benchmark_max_ms": 250.0
+      "benchmark_max_ms": 350.0
     },
     {
       "pattern": "(a+)*b",
@@ -552,6 +364,11 @@
       "analyzer": "exponential",
       "path_counter": "exponential",
       "benchmark": "exponential",
+      "match_mode": "search",
+      "slowdown_confirmed": true,
+      "status_label": "confirmed by measurement",
+      "growth_ratio": 83333.33,
+      "fitted_degree": 6.94,
       "paths": [
         0,
         1,
@@ -561,7 +378,7 @@
         8,
         16
       ],
-      "benchmark_max_ms": 250.0
+      "benchmark_max_ms": 350.0
     },
     {
       "pattern": "(a*)+b",
@@ -570,6 +387,11 @@
       "analyzer": "exponential",
       "path_counter": "exponential",
       "benchmark": "exponential",
+      "match_mode": "fullmatch",
+      "slowdown_confirmed": true,
+      "status_label": "confirmed by measurement",
+      "growth_ratio": 60344.83,
+      "fitted_degree": 3.79,
       "paths": [
         0,
         1,
@@ -579,7 +401,7 @@
         8,
         16
       ],
-      "benchmark_max_ms": 250.0
+      "benchmark_max_ms": 350.0
     },
     {
       "pattern": "((a|b)+)+",
@@ -587,7 +409,12 @@
       "intended": "exponential",
       "analyzer": "exponential",
       "path_counter": "exponential",
-      "benchmark": "linear",
+      "benchmark": "exponential",
+      "match_mode": "fullmatch",
+      "slowdown_confirmed": true,
+      "status_label": "confirmed by measurement",
+      "growth_ratio": 70000.0,
+      "fitted_degree": 7.17,
       "paths": [
         0,
         1,
@@ -597,7 +424,7 @@
         16,
         32
       ],
-      "benchmark_max_ms": 0.01
+      "benchmark_max_ms": 350.0
     },
     {
       "pattern": "(a|b|ab)+",
@@ -606,6 +433,11 @@
       "analyzer": "exponential",
       "path_counter": "exponential",
       "benchmark": "linear",
+      "match_mode": "search",
+      "slowdown_confirmed": false,
+      "status_label": "structurally ambiguous only",
+      "growth_ratio": 4.0,
+      "fitted_degree": null,
       "paths": [
         0,
         1,
@@ -624,6 +456,11 @@
       "analyzer": "exponential",
       "path_counter": "polynomial",
       "benchmark": "linear",
+      "match_mode": "fullmatch",
+      "slowdown_confirmed": false,
+      "status_label": "structurally ambiguous only",
+      "growth_ratio": 3.38,
+      "fitted_degree": 1.0,
       "paths": [
         0,
         1,
@@ -641,7 +478,12 @@
       "intended": "exponential",
       "analyzer": "exponential",
       "path_counter": "exponential",
-      "benchmark": "linear",
+      "benchmark": "exponential",
+      "match_mode": "fullmatch",
+      "slowdown_confirmed": true,
+      "status_label": "confirmed by measurement",
+      "growth_ratio": 52773.82,
+      "fitted_degree": 4.31,
       "paths": [
         0,
         1,
@@ -651,7 +493,7 @@
         16,
         32
       ],
-      "benchmark_max_ms": 0.0
+      "benchmark_max_ms": 300.81
     },
     {
       "pattern": "(a+a+)+",
@@ -659,7 +501,12 @@
       "intended": "exponential",
       "analyzer": "exponential",
       "path_counter": "exponential",
-      "benchmark": "linear",
+      "benchmark": "exponential",
+      "match_mode": "fullmatch",
+      "slowdown_confirmed": true,
+      "status_label": "confirmed by measurement",
+      "growth_ratio": 81420.12,
+      "fitted_degree": 7.94,
       "paths": [
         0,
         0,
@@ -669,7 +516,7 @@
         8,
         16
       ],
-      "benchmark_max_ms": 0.01
+      "benchmark_max_ms": 325.68
     },
     {
       "pattern": "(0|00)+1",
@@ -677,7 +524,12 @@
       "intended": "exponential",
       "analyzer": "exponential",
       "path_counter": "exponential",
-      "benchmark": "linear",
+      "benchmark": "exponential",
+      "match_mode": "search",
+      "slowdown_confirmed": true,
+      "status_label": "confirmed by measurement",
+      "growth_ratio": 5926.57,
+      "fitted_degree": 5.41,
       "paths": [
         0,
         0,
@@ -687,7 +539,7 @@
         5,
         8
       ],
-      "benchmark_max_ms": 8.54
+      "benchmark_max_ms": 13.63
     },
     {
       "pattern": "(1+)+0",
@@ -696,6 +548,11 @@
       "analyzer": "exponential",
       "path_counter": "exponential",
       "benchmark": "exponential",
+      "match_mode": "search",
+      "slowdown_confirmed": true,
+      "status_label": "confirmed by measurement",
+      "growth_ratio": 89743.59,
+      "fitted_degree": 6.96,
       "paths": [
         0,
         0,
@@ -705,7 +562,7 @@
         8,
         16
       ],
-      "benchmark_max_ms": 250.0
+      "benchmark_max_ms": 350.0
     },
     {
       "pattern": "(x|xx)+y",
@@ -713,7 +570,12 @@
       "intended": "exponential",
       "analyzer": "exponential",
       "path_counter": "exponential",
-      "benchmark": "linear",
+      "benchmark": "exponential",
+      "match_mode": "search",
+      "slowdown_confirmed": true,
+      "status_label": "confirmed by measurement",
+      "growth_ratio": 5197.41,
+      "fitted_degree": 5.52,
       "paths": [
         0,
         0,
@@ -723,7 +585,7 @@
         5,
         8
       ],
-      "benchmark_max_ms": 8.7
+      "benchmark_max_ms": 14.03
     },
     {
       "pattern": "(\\d+)+",
@@ -731,7 +593,12 @@
       "intended": "exponential",
       "analyzer": "exponential",
       "path_counter": "exponential",
-      "benchmark": "linear",
+      "benchmark": "exponential",
+      "match_mode": "fullmatch",
+      "slowdown_confirmed": true,
+      "status_label": "confirmed by measurement",
+      "growth_ratio": 100000.0,
+      "fitted_degree": 6.88,
       "paths": [
         0,
         1,
@@ -741,7 +608,7 @@
         16,
         32
       ],
-      "benchmark_max_ms": 0.0
+      "benchmark_max_ms": 350.0
     },
     {
       "pattern": "(a?a?)+$",
@@ -750,6 +617,11 @@
       "analyzer": "exponential",
       "path_counter": "exponential",
       "benchmark": "exponential",
+      "match_mode": "fullmatch",
+      "slowdown_confirmed": true,
+      "status_label": "confirmed by measurement",
+      "growth_ratio": 61403.51,
+      "fitted_degree": 4.67,
       "paths": [
         1,
         2,
@@ -759,7 +631,7 @@
         32,
         64
       ],
-      "benchmark_max_ms": 250.0
+      "benchmark_max_ms": 350.0
     },
     {
       "pattern": "(a|b*)+",
@@ -768,6 +640,11 @@
       "analyzer": "exponential",
       "path_counter": "exponential",
       "benchmark": "linear",
+      "match_mode": "fullmatch",
+      "slowdown_confirmed": false,
+      "status_label": "structurally ambiguous only",
+      "growth_ratio": 2.16,
+      "fitted_degree": 1.0,
       "paths": [
         1,
         1,
@@ -785,7 +662,12 @@
       "intended": "exponential",
       "analyzer": "exponential",
       "path_counter": "exponential",
-      "benchmark": "linear",
+      "benchmark": "exponential",
+      "match_mode": "fullmatch",
+      "slowdown_confirmed": true,
+      "status_label": "confirmed by measurement",
+      "growth_ratio": 79545.45,
+      "fitted_degree": null,
       "paths": [
         0,
         1,
@@ -795,7 +677,7 @@
         81,
         243
       ],
-      "benchmark_max_ms": 0.0
+      "benchmark_max_ms": 350.0
     },
     {
       "pattern": "(a+)+$",
@@ -804,6 +686,11 @@
       "analyzer": "exponential",
       "path_counter": "exponential",
       "benchmark": "exponential",
+      "match_mode": "search",
+      "slowdown_confirmed": true,
+      "status_label": "confirmed by measurement",
+      "growth_ratio": 46052.63,
+      "fitted_degree": 3.52,
       "paths": [
         0,
         1,
@@ -813,7 +700,7 @@
         16,
         32
       ],
-      "benchmark_max_ms": 250.0
+      "benchmark_max_ms": 350.0
     },
     {
       "pattern": "(a*|b*)*",
@@ -821,7 +708,12 @@
       "intended": "exponential",
       "analyzer": "exponential",
       "path_counter": "exponential",
-      "benchmark": "linear",
+      "benchmark": "exponential",
+      "match_mode": "fullmatch",
+      "slowdown_confirmed": true,
+      "status_label": "confirmed by measurement",
+      "growth_ratio": 87500.0,
+      "fitted_degree": 6.96,
       "paths": [
         3,
         1,
@@ -831,7 +723,7 @@
         16,
         32
       ],
-      "benchmark_max_ms": 0.0
+      "benchmark_max_ms": 350.0
     },
     {
       "pattern": "a*a*b",
@@ -839,7 +731,12 @@
       "intended": "polynomial",
       "analyzer": "polynomial",
       "path_counter": "polynomial",
-      "benchmark": "linear",
+      "benchmark": "polynomial",
+      "match_mode": "search",
+      "slowdown_confirmed": true,
+      "status_label": "confirmed by measurement",
+      "growth_ratio": 226.63,
+      "fitted_degree": 2.62,
       "paths": [
         0,
         1,
@@ -849,7 +746,7 @@
         5,
         6
       ],
-      "benchmark_max_ms": 0.02
+      "benchmark_max_ms": 4.74
     },
     {
       "pattern": "a*a*a*b",
@@ -857,7 +754,12 @@
       "intended": "polynomial",
       "analyzer": "polynomial",
       "path_counter": "polynomial",
-      "benchmark": "linear",
+      "benchmark": "polynomial",
+      "match_mode": "fullmatch",
+      "slowdown_confirmed": true,
+      "status_label": "confirmed by measurement",
+      "growth_ratio": 175.63,
+      "fitted_degree": 2.51,
       "paths": [
         0,
         1,
@@ -867,7 +769,7 @@
         15,
         21
       ],
-      "benchmark_max_ms": 0.03
+      "benchmark_max_ms": 4.65
     },
     {
       "pattern": "a+a+b",
@@ -875,7 +777,12 @@
       "intended": "polynomial",
       "analyzer": "polynomial",
       "path_counter": "polynomial",
-      "benchmark": "linear",
+      "benchmark": "polynomial",
+      "match_mode": "search",
+      "slowdown_confirmed": true,
+      "status_label": "confirmed by measurement",
+      "growth_ratio": 235.57,
+      "fitted_degree": 2.64,
       "paths": [
         0,
         0,
@@ -885,7 +792,7 @@
         3,
         4
       ],
-      "benchmark_max_ms": 0.01
+      "benchmark_max_ms": 4.64
     },
     {
       "pattern": "a+a+a+b",
@@ -893,7 +800,12 @@
       "intended": "polynomial",
       "analyzer": "polynomial",
       "path_counter": "polynomial",
-      "benchmark": "linear",
+      "benchmark": "polynomial",
+      "match_mode": "fullmatch",
+      "slowdown_confirmed": true,
+      "status_label": "confirmed by measurement",
+      "growth_ratio": 249.31,
+      "fitted_degree": 2.68,
       "paths": [
         0,
         0,
@@ -903,7 +815,7 @@
         3,
         6
       ],
-      "benchmark_max_ms": 0.03
+      "benchmark_max_ms": 4.66
     },
     {
       "pattern": "x*x*y",
@@ -911,7 +823,12 @@
       "intended": "polynomial",
       "analyzer": "polynomial",
       "path_counter": "polynomial",
-      "benchmark": "linear",
+      "benchmark": "polynomial",
+      "match_mode": "search",
+      "slowdown_confirmed": true,
+      "status_label": "confirmed by measurement",
+      "growth_ratio": 212.57,
+      "fitted_degree": 2.59,
       "paths": [
         0,
         1,
@@ -921,7 +838,7 @@
         5,
         6
       ],
-      "benchmark_max_ms": 0.01
+      "benchmark_max_ms": 4.63
     },
     {
       "pattern": "0*0*1",
@@ -929,7 +846,12 @@
       "intended": "polynomial",
       "analyzer": "polynomial",
       "path_counter": "polynomial",
-      "benchmark": "linear",
+      "benchmark": "polynomial",
+      "match_mode": "search",
+      "slowdown_confirmed": true,
+      "status_label": "confirmed by measurement",
+      "growth_ratio": 211.81,
+      "fitted_degree": 2.59,
       "paths": [
         0,
         1,
@@ -939,7 +861,7 @@
         5,
         6
       ],
-      "benchmark_max_ms": 0.01
+      "benchmark_max_ms": 4.62
     },
     {
       "pattern": "(a|b)*a*(a|b)*c",
@@ -947,7 +869,12 @@
       "intended": "polynomial",
       "analyzer": "polynomial",
       "path_counter": "polynomial",
-      "benchmark": "linear",
+      "benchmark": "exponential",
+      "match_mode": "search",
+      "slowdown_confirmed": true,
+      "status_label": "confirmed by measurement",
+      "growth_ratio": 86.92,
+      "fitted_degree": null,
       "paths": [
         0,
         1,
@@ -957,7 +884,7 @@
         15,
         21
       ],
-      "benchmark_max_ms": 0.44
+      "benchmark_max_ms": 350.0
     },
     {
       "pattern": "a*b*a*b*c",
@@ -965,7 +892,12 @@
       "intended": "polynomial",
       "analyzer": "polynomial",
       "path_counter": "polynomial",
-      "benchmark": "linear",
+      "benchmark": "polynomial",
+      "match_mode": "search",
+      "slowdown_confirmed": true,
+      "status_label": "confirmed by measurement",
+      "growth_ratio": 185.31,
+      "fitted_degree": 2.51,
       "paths": [
         0,
         1,
@@ -975,7 +907,7 @@
         5,
         6
       ],
-      "benchmark_max_ms": 0.01
+      "benchmark_max_ms": 5.19
     },
     {
       "pattern": "(a|c)*(a|d)*b",
@@ -983,7 +915,12 @@
       "intended": "polynomial",
       "analyzer": "polynomial",
       "path_counter": "polynomial",
-      "benchmark": "linear",
+      "benchmark": "polynomial",
+      "match_mode": "fullmatch",
+      "slowdown_confirmed": true,
+      "status_label": "confirmed by measurement",
+      "growth_ratio": 37.84,
+      "fitted_degree": 1.75,
       "paths": [
         0,
         1,
@@ -993,7 +930,7 @@
         5,
         6
       ],
-      "benchmark_max_ms": 0.07
+      "benchmark_max_ms": 1.24
     },
     {
       "pattern": "\\d*\\d*$",
@@ -1001,7 +938,12 @@
       "intended": "polynomial",
       "analyzer": "polynomial",
       "path_counter": "polynomial",
-      "benchmark": "linear",
+      "benchmark": "polynomial",
+      "match_mode": "search",
+      "slowdown_confirmed": true,
+      "status_label": "confirmed by measurement",
+      "growth_ratio": 376.0,
+      "fitted_degree": 2.85,
       "paths": [
         1,
         2,
@@ -1011,7 +953,7 @@
         6,
         7
       ],
-      "benchmark_max_ms": 0.03
+      "benchmark_max_ms": 48.32
     },
     {
       "pattern": "[0-9]*[0-9]*x",
@@ -1019,7 +961,12 @@
       "intended": "polynomial",
       "analyzer": "polynomial",
       "path_counter": "linear",
-      "benchmark": "linear",
+      "benchmark": "polynomial",
+      "match_mode": "search",
+      "slowdown_confirmed": true,
+      "status_label": "confirmed by measurement",
+      "growth_ratio": 307.95,
+      "fitted_degree": 2.75,
       "paths": [
         0,
         0,
@@ -1029,7 +976,7 @@
         0,
         0
       ],
-      "benchmark_max_ms": 0.01
+      "benchmark_max_ms": 17.03
     },
     {
       "pattern": "[a-z]*[a-z]*!",
@@ -1037,7 +984,12 @@
       "intended": "polynomial",
       "analyzer": "polynomial",
       "path_counter": "polynomial",
-      "benchmark": "linear",
+      "benchmark": "polynomial",
+      "match_mode": "search",
+      "slowdown_confirmed": true,
+      "status_label": "confirmed by measurement",
+      "growth_ratio": 308.81,
+      "fitted_degree": 2.76,
       "paths": [
         0,
         1,
@@ -1047,7 +999,7 @@
         5,
         6
       ],
-      "benchmark_max_ms": 0.01
+      "benchmark_max_ms": 17.36
     },
     {
       "pattern": "a*ba*b",
@@ -1056,6 +1008,11 @@
       "analyzer": "linear",
       "path_counter": "linear",
       "benchmark": "linear",
+      "match_mode": "search",
+      "slowdown_confirmed": false,
+      "status_label": "safe",
+      "growth_ratio": 1.0,
+      "fitted_degree": null,
       "paths": [
         0,
         0,
@@ -1065,7 +1022,7 @@
         1,
         1
       ],
-      "benchmark_max_ms": 0.01
+      "benchmark_max_ms": 0.0
     },
     {
       "pattern": "(a*b)*a*",
@@ -1074,6 +1031,11 @@
       "analyzer": "linear",
       "path_counter": "linear",
       "benchmark": "linear",
+      "match_mode": "search",
+      "slowdown_confirmed": false,
+      "status_label": "safe",
+      "growth_ratio": 1.26,
+      "fitted_degree": null,
       "paths": [
         1,
         1,
@@ -1091,7 +1053,12 @@
       "intended": "polynomial",
       "analyzer": "polynomial",
       "path_counter": "polynomial",
-      "benchmark": "linear",
+      "benchmark": "polynomial",
+      "match_mode": "search",
+      "slowdown_confirmed": true,
+      "status_label": "confirmed by measurement",
+      "growth_ratio": 210.76,
+      "fitted_degree": 2.58,
       "paths": [
         0,
         1,
@@ -1101,7 +1068,7 @@
         5,
         6
       ],
-      "benchmark_max_ms": 0.01
+      "benchmark_max_ms": 4.68
     },
     {
       "pattern": "m*m*n",
@@ -1109,7 +1076,12 @@
       "intended": "polynomial",
       "analyzer": "polynomial",
       "path_counter": "polynomial",
-      "benchmark": "linear",
+      "benchmark": "polynomial",
+      "match_mode": "search",
+      "slowdown_confirmed": true,
+      "status_label": "confirmed by measurement",
+      "growth_ratio": 220.14,
+      "fitted_degree": 2.61,
       "paths": [
         0,
         1,
@@ -1119,7 +1091,7 @@
         5,
         6
       ],
-      "benchmark_max_ms": 0.01
+      "benchmark_max_ms": 4.62
     },
     {
       "pattern": "p*p*q",
@@ -1127,7 +1099,12 @@
       "intended": "polynomial",
       "analyzer": "polynomial",
       "path_counter": "polynomial",
-      "benchmark": "linear",
+      "benchmark": "polynomial",
+      "match_mode": "search",
+      "slowdown_confirmed": true,
+      "status_label": "confirmed by measurement",
+      "growth_ratio": 224.34,
+      "fitted_degree": 2.61,
       "paths": [
         0,
         1,
@@ -1137,7 +1114,7 @@
         5,
         6
       ],
-      "benchmark_max_ms": 0.01
+      "benchmark_max_ms": 4.6
     },
     {
       "pattern": "s*s*t",
@@ -1145,7 +1122,12 @@
       "intended": "polynomial",
       "analyzer": "polynomial",
       "path_counter": "polynomial",
-      "benchmark": "linear",
+      "benchmark": "polynomial",
+      "match_mode": "search",
+      "slowdown_confirmed": true,
+      "status_label": "confirmed by measurement",
+      "growth_ratio": 191.15,
+      "fitted_degree": 2.52,
       "paths": [
         0,
         1,
@@ -1155,7 +1137,7 @@
         5,
         6
       ],
-      "benchmark_max_ms": 0.01
+      "benchmark_max_ms": 4.57
     },
     {
       "pattern": "w*w*v",
@@ -1163,7 +1145,12 @@
       "intended": "polynomial",
       "analyzer": "polynomial",
       "path_counter": "polynomial",
-      "benchmark": "linear",
+      "benchmark": "polynomial",
+      "match_mode": "search",
+      "slowdown_confirmed": true,
+      "status_label": "confirmed by measurement",
+      "growth_ratio": 226.75,
+      "fitted_degree": 2.62,
       "paths": [
         0,
         1,
@@ -1173,7 +1160,7 @@
         5,
         6
       ],
-      "benchmark_max_ms": 0.01
+      "benchmark_max_ms": 4.6
     },
     {
       "pattern": "k*k*k*m",
@@ -1181,7 +1168,12 @@
       "intended": "polynomial",
       "analyzer": "polynomial",
       "path_counter": "polynomial",
-      "benchmark": "linear",
+      "benchmark": "polynomial",
+      "match_mode": "fullmatch",
+      "slowdown_confirmed": true,
+      "status_label": "confirmed by measurement",
+      "growth_ratio": 220.12,
+      "fitted_degree": 2.61,
       "paths": [
         0,
         1,
@@ -1191,7 +1183,7 @@
         15,
         21
       ],
-      "benchmark_max_ms": 0.04
+      "benchmark_max_ms": 4.51
     },
     {
       "pattern": "a*b+",
@@ -1200,6 +1192,11 @@
       "analyzer": "linear",
       "path_counter": "linear",
       "benchmark": "linear",
+      "match_mode": "search",
+      "slowdown_confirmed": false,
+      "status_label": "safe",
+      "growth_ratio": 2.48,
+      "fitted_degree": null,
       "paths": [
         0,
         1,
@@ -1218,6 +1215,11 @@
       "analyzer": "linear",
       "path_counter": "linear",
       "benchmark": "linear",
+      "match_mode": "search",
+      "slowdown_confirmed": false,
+      "status_label": "safe",
+      "growth_ratio": 2.13,
+      "fitted_degree": null,
       "paths": [
         0,
         0,
@@ -1236,6 +1238,11 @@
       "analyzer": "linear",
       "path_counter": "linear",
       "benchmark": "linear",
+      "match_mode": "search",
+      "slowdown_confirmed": false,
+      "status_label": "safe",
+      "growth_ratio": 4.11,
+      "fitted_degree": 1.51,
       "paths": [
         0,
         0,
@@ -1245,7 +1252,7 @@
         1,
         1
       ],
-      "benchmark_max_ms": 0.02
+      "benchmark_max_ms": 0.01
     },
     {
       "pattern": "hello",
@@ -1254,6 +1261,11 @@
       "analyzer": "linear",
       "path_counter": "linear",
       "benchmark": "linear",
+      "match_mode": "search",
+      "slowdown_confirmed": false,
+      "status_label": "safe",
+      "growth_ratio": 1.0,
+      "fitted_degree": null,
       "paths": [
         0,
         0,
@@ -1272,6 +1284,11 @@
       "analyzer": "linear",
       "path_counter": "linear",
       "benchmark": "linear",
+      "match_mode": "search",
+      "slowdown_confirmed": false,
+      "status_label": "safe",
+      "growth_ratio": 3.05,
+      "fitted_degree": null,
       "paths": [
         0,
         0,
@@ -1281,7 +1298,7 @@
         0,
         0
       ],
-      "benchmark_max_ms": 0.0
+      "benchmark_max_ms": 0.01
     },
     {
       "pattern": "(0|1)*00",
@@ -1290,6 +1307,11 @@
       "analyzer": "linear",
       "path_counter": "linear",
       "benchmark": "linear",
+      "match_mode": "search",
+      "slowdown_confirmed": false,
+      "status_label": "safe",
+      "growth_ratio": 1.34,
+      "fitted_degree": null,
       "paths": [
         0,
         0,
@@ -1308,6 +1330,11 @@
       "analyzer": "linear",
       "path_counter": "linear",
       "benchmark": "linear",
+      "match_mode": "search",
+      "slowdown_confirmed": false,
+      "status_label": "safe",
+      "growth_ratio": 3.2,
+      "fitted_degree": null,
       "paths": [
         0,
         0,
@@ -1317,7 +1344,7 @@
         1,
         1
       ],
-      "benchmark_max_ms": 0.0
+      "benchmark_max_ms": 0.01
     },
     {
       "pattern": "^[a-z]+@[a-z]+\\.[a-z]+$",
@@ -1326,6 +1353,11 @@
       "analyzer": "linear",
       "path_counter": "linear",
       "benchmark": "linear",
+      "match_mode": "search",
+      "slowdown_confirmed": false,
+      "status_label": "safe",
+      "growth_ratio": 3.5,
+      "fitted_degree": null,
       "paths": [
         0,
         0,
@@ -1344,6 +1376,11 @@
       "analyzer": "linear",
       "path_counter": "linear",
       "benchmark": "linear",
+      "match_mode": "search",
+      "slowdown_confirmed": false,
+      "status_label": "safe",
+      "growth_ratio": 4.9,
+      "fitted_degree": null,
       "paths": [
         0,
         0,
@@ -1362,6 +1399,11 @@
       "analyzer": "linear",
       "path_counter": "linear",
       "benchmark": "linear",
+      "match_mode": "search",
+      "slowdown_confirmed": false,
+      "status_label": "safe",
+      "growth_ratio": 4.8,
+      "fitted_degree": null,
       "paths": [
         0,
         0,
@@ -1380,6 +1422,11 @@
       "analyzer": "linear",
       "path_counter": "linear",
       "benchmark": "linear",
+      "match_mode": "search",
+      "slowdown_confirmed": false,
+      "status_label": "safe",
+      "growth_ratio": 1.4,
+      "fitted_degree": null,
       "paths": [
         0,
         0,
@@ -1398,6 +1445,11 @@
       "analyzer": "linear",
       "path_counter": "linear",
       "benchmark": "linear",
+      "match_mode": "search",
+      "slowdown_confirmed": false,
+      "status_label": "safe",
+      "growth_ratio": 2.23,
+      "fitted_degree": null,
       "paths": [
         0,
         1,
@@ -1407,7 +1459,7 @@
         1,
         1
       ],
-      "benchmark_max_ms": 0.0
+      "benchmark_max_ms": 0.01
     },
     {
       "pattern": "a?b+c*",
@@ -1416,6 +1468,11 @@
       "analyzer": "linear",
       "path_counter": "linear",
       "benchmark": "linear",
+      "match_mode": "search",
+      "slowdown_confirmed": false,
+      "status_label": "safe",
+      "growth_ratio": 2.31,
+      "fitted_degree": null,
       "paths": [
         0,
         1,
@@ -1425,7 +1482,7 @@
         1,
         1
       ],
-      "benchmark_max_ms": 0.0
+      "benchmark_max_ms": 0.01
     },
     {
       "pattern": "(a|b)c(d|e)",
@@ -1434,6 +1491,11 @@
       "analyzer": "linear",
       "path_counter": "linear",
       "benchmark": "linear",
+      "match_mode": "search",
+      "slowdown_confirmed": false,
+      "status_label": "safe",
+      "growth_ratio": 1.0,
+      "fitted_degree": null,
       "paths": [
         0,
         0,
@@ -1443,7 +1505,7 @@
         0,
         0
       ],
-      "benchmark_max_ms": 0.0
+      "benchmark_max_ms": 0.01
     },
     {
       "pattern": "ab*c+",
@@ -1452,6 +1514,11 @@
       "analyzer": "linear",
       "path_counter": "linear",
       "benchmark": "linear",
+      "match_mode": "search",
+      "slowdown_confirmed": false,
+      "status_label": "safe",
+      "growth_ratio": 1.23,
+      "fitted_degree": null,
       "paths": [
         0,
         0,
@@ -1470,6 +1537,11 @@
       "analyzer": "linear",
       "path_counter": "linear",
       "benchmark": "linear",
+      "match_mode": "search",
+      "slowdown_confirmed": false,
+      "status_label": "safe",
+      "growth_ratio": 1.07,
+      "fitted_degree": null,
       "paths": [
         0,
         1,
@@ -1488,6 +1560,11 @@
       "analyzer": "linear",
       "path_counter": "linear",
       "benchmark": "linear",
+      "match_mode": "search",
+      "slowdown_confirmed": false,
+      "status_label": "safe",
+      "growth_ratio": 1.06,
+      "fitted_degree": null,
       "paths": [
         0,
         1,
@@ -1506,6 +1583,11 @@
       "analyzer": "linear",
       "path_counter": "linear",
       "benchmark": "linear",
+      "match_mode": "search",
+      "slowdown_confirmed": false,
+      "status_label": "safe",
+      "growth_ratio": 1.0,
+      "fitted_degree": null,
       "paths": [
         0,
         1,
@@ -1524,6 +1606,11 @@
       "analyzer": "linear",
       "path_counter": "linear",
       "benchmark": "linear",
+      "match_mode": "search",
+      "slowdown_confirmed": false,
+      "status_label": "safe",
+      "growth_ratio": 3.25,
+      "fitted_degree": null,
       "paths": [
         0,
         0,
@@ -1533,7 +1620,7 @@
         0,
         0
       ],
-      "benchmark_max_ms": 0.0
+      "benchmark_max_ms": 0.01
     },
     {
       "pattern": "^test\\d+$",
@@ -1542,6 +1629,11 @@
       "analyzer": "linear",
       "path_counter": "linear",
       "benchmark": "linear",
+      "match_mode": "search",
+      "slowdown_confirmed": false,
+      "status_label": "safe",
+      "growth_ratio": 0.9,
+      "fitted_degree": null,
       "paths": [
         0,
         0,
@@ -1560,6 +1652,11 @@
       "analyzer": "linear",
       "path_counter": "linear",
       "benchmark": "linear",
+      "match_mode": "search",
+      "slowdown_confirmed": false,
+      "status_label": "safe",
+      "growth_ratio": 0.8,
+      "fitted_degree": null,
       "paths": [
         0,
         0,
@@ -1578,6 +1675,11 @@
       "analyzer": "linear",
       "path_counter": "linear",
       "benchmark": "linear",
+      "match_mode": "search",
+      "slowdown_confirmed": false,
+      "status_label": "safe",
+      "growth_ratio": 4.3,
+      "fitted_degree": null,
       "paths": [
         0,
         0,

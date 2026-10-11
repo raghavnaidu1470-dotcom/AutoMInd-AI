@@ -9,16 +9,9 @@ transitions, states, execution traces, and simulation outputs according to
 the canonical schema documented in `docs/json_schema.md`.
 """
 
-import sys
 from typing import List, Dict, Optional, Any, Union
 from pydantic import BaseModel, Field
 
-# Alias module names to prevent duplicate Pydantic type registration
-# if imported via different package roots (backend.automata_engine vs automata_engine)
-if "backend.automata_engine.models" not in sys.modules:
-    sys.modules["backend.automata_engine.models"] = sys.modules[__name__]
-if "automata_engine.models" not in sys.modules:
-    sys.modules["automata_engine.models"] = sys.modules[__name__]
 
 
 class State(BaseModel):

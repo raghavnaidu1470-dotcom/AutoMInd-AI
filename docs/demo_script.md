@@ -30,15 +30,15 @@
 2. Click **🔍 Screen & Explain**.
 
 ### Expected Output:
-- **Risk Badge:** `⚠️ EXPONENTIAL AMBIGUITY RISK` (Confidence ~100%).
+- **Risk Badge:** `⚠️ EXPONENTIAL AMBIGUITY RISK — CONFIRMED BY MEASUREMENT` (Semantics: `fullmatch`).
 - **Offending Span:** Characters `0-6: (a+)+$` highlighted in glowing red.
-- **Diagnosis:** *"Exponential Ambiguity (EDA) detected via Weber & Seidl (1991) pair-graph criterion. A strongly connected component contains overlapping parallel cycles on symbol 'a', allowing $2^N$ distinct paths for repeated input."*
-- **Engine Nuance Note:** Displayed in an alert callout explaining why right-anchor `$` or failing suffix triggers catastrophic backtracking, while unanchored `re.search` can terminate early.
+- **Diagnosis:** *"Exponential Ambiguity (EDA) detected via pair-graph criterion. A strongly connected component contains overlapping parallel cycles on symbol 'a', allowing $2^N$ distinct paths for repeated input."*
+- **Empirical Measurement Callout:** Displays confirmation that exponential runtime growth was empirically confirmed in sandboxed execution with DFA-chosen failing suffix `'!'`.
 - **Synthesized Attack String:** Prefix `''`, Pump `'a'`, Suffix `'!'` (e.g., `aaaaaaaaaaaaaaaaaaaa!`).
 - **Empirical Graph:** Exponential scaling curve showing runtime growing sharply with repeat count.
 
 ### 🎙️ What to Say:
-> *"Here we test the classic nested plus pattern `(a+)+$`. In milliseconds, ReDoS Guard's Weber & Seidl pair-graph analyzer identifies a strongly connected component in the product automaton containing overlapping cycles. Notice that our tool highlights the exact offending character span, synthesizes a pumpable attack string with a failing suffix, and clearly notes the engine execution nuance: without a failing suffix or anchor, Python's search engine would terminate on the first prefix, but under full-match or with a mismatching suffix, backtracking explodes exponentially."*
+> *"Here we test the classic nested plus pattern `(a+)+$`. In milliseconds, ReDoS Guard's pair-graph analyzer identifies a strongly connected component in the product automaton containing overlapping cycles. Notice that our tool highlights the exact offending character span, synthesizes a pumpable attack string with a DFA-computed failing suffix, and verifies the vulnerability empirically in a sandboxed subprocess. The UI explicitly marks this as 'Confirmed by Measurement', not just structural ambiguity."*
 
 ---
 
@@ -68,13 +68,14 @@
 2. Click **🔍 Screen & Explain**, then click **🛠️ Verify Repair**.
 
 ### Expected Output:
-- **Risk Badge:** `⚡ POLYNOMIAL AMBIGUITY RISK` (Degree 2).
-- **Diagnosis:** *"Polynomial Ambiguity (PDA) of degree 2 detected via Weber & Seidl (1991) off-diagonal cycle criterion."*
+- **Risk Badge:** `⚡ POLYNOMIAL AMBIGUITY RISK — CONFIRMED BY MEASUREMENT` (Semantics: `search`, Degree 2).
+- **Diagnosis:** *"Polynomial Ambiguity (PDA) of degree 2 detected via triple-product condition."*
+- **Empirical Measurement Callout:** Displays confirmation that polynomial runtime growth was empirically confirmed in sandboxed execution with repeat scaling ($k \ge 160$).
 - **Attack String:** Pump `'a'`, Suffix `'!'`.
 - **Verified Repair:** `a*a*b` ➜ `a*b` (`merge_chained_repetitions`) with verified DFA equivalence.
 
 ### 🎙️ What to Say:
-> *"Now we evaluate `a*a*b`. The pair graph identifies an off-diagonal cycle where multiple states iterate on symbol 'a' before matching 'b'. The analyzer determines polynomial growth of degree 2. Clicking 'Verify Repair' merges the redundant adjacent repetitions into `a*b` and proves language equivalence."*
+> *"Now we evaluate `a*a*b`. The triple-product analyzer identifies state transfer between adjacent star loops on symbol 'a' before matching 'b', proving polynomial growth of degree 2. Notice that the UI reports this as confirmed by measurement under search semantics. Clicking 'Verify Repair' merges the redundant adjacent repetitions into `a*b` and proves language equivalence."*
 
 ---
 
@@ -89,12 +90,12 @@
 
 ### Expected Output:
 - **Risk Badge:** `✅ LINEAR AMBIGUITY RISK` (Confidence ~100%).
-- **Diagnosis:** *"Exact ambiguity analysis confirmed linear complexity: all reachable cycles in G2 are purely diagonal."*
+- **Diagnosis:** *"Exact ambiguity analysis confirmed linear complexity: all reachable cycles in G2 are purely diagonal and no triple-product transfer exists."*
 - **Attack Synthesizer:** *"Safe regex: No pumpable attack string exists. All cycle traversals evaluate linearly."*
 - **Repair Button:** Reports *"Regex is already linear; no repair needed."*
 
 ### 🎙️ What to Say:
-> *"Next, we test `(a|b)*abb`, a typical pattern for tokens ending in 'abb'. Even though it contains a loop `(a|b)*`, our pair-graph analysis proves all cycles in the product graph are purely diagonal. The exit sequence 'abb' resolves non-determinism, meaning no combinatorial explosion is possible."*
+> *"Next, we test `(a|b)*abb`, a typical pattern for tokens ending in 'abb'. Even though it contains a loop `(a|b)*`, our analysis proves all cycles in the product graph are purely diagonal and fail the triple condition. The exit sequence 'abb' resolves non-determinism, meaning no combinatorial explosion is possible."*
 
 ---
 
@@ -120,7 +121,10 @@
 ---
 
 ## Summary of Evaluated Key Numbers
-- **Exact Analyzer Accuracy on 64-Regex Suite:** **96.88%** (Weber & Seidl 1991 Pair Graph).
-- **Independent DP Path Counter Accuracy:** **93.75%**.
-- **Equivalence Verification Success on Accepted Repairs:** **100.0%** (22/22 verified, 0 false positive repairs).
+- **Exact Analyzer Accuracy on 64-Regex Suite:** **96.88%** (62 / 64).
+- **DP Path Counter Cross-Check:** **93.75%** (60 / 64 on suite, 97.27% on 220 random regexes).
+- **Sandboxed Benchmark Agreement:** **92.19%** (59 / 64; 19/22 exponential confirmed, 18/20 polynomial confirmed, 22/22 linear confirmed safe).
+- **GNN Held-Out Screening Accuracy:** **85.43%** (95% CI: [83.45%, 87.41%]) across 1,222 test samples with zero family/template overlap.
+- **Timing Crossover:** At $|V| \le 18$ states, Exact Analyzer is faster end-to-end (0.337 ms vs 0.357 ms). Empirical crossover at $|V| \approx 18$ states.
+- **Equivalence Verification Success on Accepted Repairs:** **100.0%** (22 / 22 verified, 0 false positive repairs).
 - **Fuzz Testing:** 2,000+ random strings per accepted repair tested against `re.fullmatch` with zero discrepancies.

@@ -66,6 +66,39 @@ def test_polynomial_ambiguity_chained_stars(analyzer):
     assert "Polynomial Ambiguity" in result.explanation
 
 
+def test_polynomial_ambiguity_triple_product_criterion(analyzer):
+    """
+    Test triple-product condition for polynomial ambiguity:
+    a*a*b and a*a*a*b must be classified as POLYNOMIAL.
+    """
+    for pat in ["a*a*b", "a*a*a*b"]:
+        res = analyzer.analyze(pat)
+        assert res.risk_class == AmbiguityRisk.POLYNOMIAL, f"Expected {pat} to be POLYNOMIAL, got {res.risk_class}"
+        assert res.is_vulnerable is True
+        assert res.degree is not None and res.degree >= 2
+        assert res.attack_string is not None
+
+
+def test_disjoint_alternations_must_not_be_polynomial(analyzer):
+    """
+    Verify that disjoint alternations with off-diagonal pair-graph cycles
+    are NOT classified as polynomial because the triple condition fails:
+    x(a+|a+)y, (a+|a+), and (a*|a*)c must be classified as LINEAR.
+    """
+    non_polynomial_patterns = [
+        "x(a+|a+)y",
+        "(a+|a+)",
+        "(a*|a*)c",
+    ]
+    for pat in non_polynomial_patterns:
+        res = analyzer.analyze(pat)
+        assert res.risk_class == AmbiguityRisk.LINEAR, (
+            f"Pattern '{pat}' must NOT be classified polynomial; got {res.risk_class.value}: {res.explanation}"
+        )
+        assert res.is_vulnerable is False
+
+
+
 def test_linear_ambiguity_safe_patterns(analyzer):
     """Test unambiguous / deterministic / safe regular expressions."""
     safe_patterns = [
