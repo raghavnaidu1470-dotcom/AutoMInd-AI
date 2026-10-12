@@ -75,52 +75,47 @@ To prevent self-referential validation and eliminate hardcoded metrics, ground t
   - *Polynomial*: Precision = 94.44%, Recall = 85.0%, F1 = 0.8947
   - *Exponential*: Precision = 100.0%, Recall = 95.45%, F1 = 0.9767
 
-#### (c) Sandboxed Empirical Runtime Benchmark (`subprocess` with DFA-Chosen Failing Suffix)
-- **Overall Accuracy / Empirical Agreement**: **92.19%** (59 / 64)
-  - *(Significant improvement over naive search agreement of 28/64 (43.75%))*.
+#### (c) Sandboxed Empirical Runtime Benchmark (`subprocess` with DFA-Chosen Failing Suffix & Shortest Witness Pump)
+- **Overall Agreement with Exact Analyzer**: **96.88%** (62 / 64)
+- **Overall Agreement with Intended Labels**: **93.75%** (60 / 64)
+- **Risk Triage (Safe vs. Vulnerable) Agreement**: **100.0%** (64 / 64)
 - **Empirical Confirmation by Category**:
-  - **Exponential Confirmed**: **19 / 22** (86.4%)
-  - **Polynomial Confirmed Super-Linear**: **18 / 20** (90.0%)
-  - **Linear Confirmed Safe**: **22 / 22** (100.0% — zero false slowdown detections)
-- **Confusion Matrix**:
+  - **Exponential Confirmed**: **22 / 22 (100.0%)** — All 22 exponential patterns confirmed exponential in Python `re` using shortest pair-graph witness cycle pump synthesis (including `(a|b|ab)+`, `(ba*a*)+`, and `(a|b*)+`).
+  - **Polynomial Confirmed Super-Linear**: **18 / 20 (90.0%)** (16 confirmed polynomial, 2 confirmed exponential under unanchored search: `(a|b)*a*(a|b)*c` and `\d*\d*$`).
+  - **Linear Confirmed Safe**: **22 / 22 (100.0% — zero false slowdown detections)**.
+- **Confusion Matrix** (Intended rows, Benchmark columns):
   - Linear (22): Linear = 22, Polynomial = 0, Exponential = 0
-  - Polynomial (20): Linear = 2, Polynomial = 18, Exponential = 0
-  - Exponential (22): Linear = 3, Polynomial = 0, Exponential = 19
+  - Polynomial (20): Linear = 2, Polynomial = 16, Exponential = 2
+  - Exponential (22): Linear = 0, Polynomial = 0, Exponential = 22
 - **Per-Class Metrics**:
-  - *Linear*: Precision = 81.48%, Recall = 100.0%, F1 = 0.8980
-  - *Polynomial*: Precision = 100.0%, Recall = 90.0%, F1 = 0.9474
-  - *Exponential*: Precision = 100.0%, Recall = 86.36%, F1 = 0.9268
+  - *Linear*: Precision = 91.67%, Recall = 100.0%, F1 = 0.9565
+  - *Polynomial*: Precision = 100.0%, Recall = 80.0%, F1 = 0.8889
+  - *Exponential*: Precision = 91.67%, Recall = 100.0%, F1 = 0.9565
 
 ### 2.2 Empirical Disagreements and Resolutions
 
-All 6 disagreements between static theoretical criteria and empirical measurements are documented below:
+All disagreements between static theoretical criteria and empirical measurements are documented below:
 
 1. **`a*ba*b` and `(a*b)*a*`**:
    - *Intended Label*: Polynomial
    - *Exact Analyzer*: Linear
    - *Empirical Benchmark*: Linear (Confirmed Safe)
    - *Explanation*: Bounded ambiguity. Deterministic token separation by literal `b` limits the total number of accepting paths to at most 1 ($M_k \le 1$). Both the exact analyzer and physical execution confirm Linear runtime, correcting the initial human intended label.
-2. **`(a|b|ab)+`**:
-   - *Intended Label*: Exponential
-   - *Exact Analyzer*: Exponential
-   - *Empirical Benchmark*: Linear (Under `fullmatch`)
-   - *Explanation*: Python `re` engine greedy branch optimization. When matching alternative branches, Python greedily commits to branch `'a'` and prunes `'ab'` without exploring all permutations.
-3. **`(ba*a*)+`**:
-   - *Intended Label*: Exponential
-   - *Exact Analyzer*: Exponential
-   - *Empirical Benchmark*: Linear
-   - *Explanation*: Attack string pump localization. The repeated pump substring is absorbed within the inner star loop rather than exercising the outer plus cycle.
-4. **`(a|b*)+`**:
-   - *Intended Label*: Exponential
-   - *Exact Analyzer*: Exponential
-   - *Empirical Benchmark*: Linear
-   - *Explanation*: Nullable loop optimization. Python's backtracking engine prunes redundant empty iterations in nested nullable loops.
-5. **`[0-9]*[0-9]*x`**:
+2. **`[0-9]*[0-9]*x`**:
    - *Intended Label*: Polynomial
    - *Exact Analyzer*: Polynomial
    - *Empirical Benchmark*: Polynomial (Confirmed Super-Linear)
    - *Path Counter*: Linear
    - *Explanation*: Dynamic programming depth limit. Because the digit alphabet has size 10, the path counter depth limit ($k=6$) is insufficient to reach the ambiguous pump cycle. Both the exact analyzer and empirical runtime agree on Polynomial.
+3. **`(a|b)*a*(a|b)*c` and `\d*\d*$`**:
+   - *Intended Label*: Polynomial
+   - *Exact Analyzer*: Polynomial
+   - *Empirical Benchmark*: Exponential
+   - *Explanation*: Search / anchor semantics scaling. Under unanchored search or end-anchored matching with multiple wildcard loops, combinatorial branch cascading exceeds the exponential growth fit threshold in Python `re`.
+4. **Resolved Exponential Cases via Pair-Graph Witness Cycle Synthesis**:
+   - `(a|b|ab)+`: Previously reported linear because naive synthesis picked single-character loop `'b'`, which only exercised a linear branch. With the shortest pair-graph witness cycle $v = \text{"ab"}$, empirical fullmatch backtracks exponentially ($216\text{ ms}$ at $k=20$, $906\text{ ms}$ at $k=22$, timeout at $k=24$).
+   - `(ba*a*)+`: Previously reported linear because naive synthesis picked `'a'`, which remained confined in the inner star loop. With the shortest pair-graph witness cycle $v = \text{"ba"}$, empirical fullmatch backtracks exponentially ($167\text{ ms}$ at $k=20$, $715\text{ ms}$ at $k=22$, timeout at $k=24$).
+   - `(a|b*)+`: Previously reported linear because naive synthesis selected `'a'`, which only exercised the linear branch. Pumping with the multi-edge witness symbol $v = \text{"b"}$ triggers catastrophic exponential backtracking ($177\text{ ms}$ at $k=20$, timeout at $k=24$, growth ratio > 10,000x). Python `re` does not optimize away this ambiguity.
 
 ---
 

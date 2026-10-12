@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-10-12T01:19:11Z",
+  "timestamp": "2026-10-12T22:59:30Z",
   "total_patterns": 64,
   "analyzer_evaluation": {
     "accuracy": 0.9688,
@@ -98,9 +98,9 @@
     }
   },
   "benchmark_evaluation": {
-    "accuracy": 0.9219,
+    "accuracy": 0.9375,
     "total": 64,
-    "correct": 59,
+    "correct": 60,
     "matrix": {
       "linear": {
         "linear": 22,
@@ -109,72 +109,72 @@
       },
       "polynomial": {
         "linear": 2,
-        "polynomial": 18,
-        "exponential": 0
+        "polynomial": 16,
+        "exponential": 2
       },
       "exponential": {
-        "linear": 3,
+        "linear": 0,
         "polynomial": 0,
-        "exponential": 19
+        "exponential": 22
       }
     },
     "per_class": {
       "linear": {
         "true_positive": 22,
-        "false_positive": 5,
+        "false_positive": 2,
         "false_negative": 0,
-        "precision": 0.8148,
+        "precision": 0.9167,
         "recall": 1.0,
-        "f1_score": 0.898
+        "f1_score": 0.9565
       },
       "polynomial": {
-        "true_positive": 18,
+        "true_positive": 16,
         "false_positive": 0,
-        "false_negative": 2,
+        "false_negative": 4,
         "precision": 1.0,
-        "recall": 0.9,
-        "f1_score": 0.9474
+        "recall": 0.8,
+        "f1_score": 0.8889
       },
       "exponential": {
-        "true_positive": 19,
-        "false_positive": 0,
-        "false_negative": 3,
-        "precision": 1.0,
-        "recall": 0.8636,
-        "f1_score": 0.9268
+        "true_positive": 22,
+        "false_positive": 2,
+        "false_negative": 0,
+        "precision": 0.9167,
+        "recall": 1.0,
+        "f1_score": 0.9565
       }
     }
   },
   "disagreements": [
     {
-      "pattern": "(a|b|ab)+",
-      "intended": "exponential",
-      "analyzer": "exponential",
-      "path_counter": "exponential",
-      "benchmark": "linear",
-      "match_mode": "fullmatch",
-      "slowdown_confirmed": false,
-      "reason": "Python re engine greedy branch optimization: the engine greedily selects branch 'a' and prunes the alternative branch 'ab' without full combinatorial exploration."
-    },
-    {
       "pattern": "(ba*a*)+",
       "intended": "exponential",
       "analyzer": "exponential",
       "path_counter": "polynomial",
-      "benchmark": "linear",
+      "benchmark": "exponential",
       "match_mode": "fullmatch",
-      "slowdown_confirmed": false,
-      "reason": "Attack string pump localization: repeated pump substring remains confined within inner star loop rather than exercising the outer plus repetition."
+      "slowdown_confirmed": true,
+      "reason": "DP depth limit: string required to reach ambiguous pump cycle exceeds evaluation depth k=6."
     },
     {
-      "pattern": "(a|b*)+",
-      "intended": "exponential",
-      "analyzer": "exponential",
-      "path_counter": "exponential",
-      "benchmark": "linear",
+      "pattern": "(a|b)*a*(a|b)*c",
+      "intended": "polynomial",
+      "analyzer": "polynomial",
+      "path_counter": "polynomial",
+      "benchmark": "exponential",
       "match_mode": "search",
-      "slowdown_confirmed": false,
-      "reason": "Nullable loop optimization: Python re prunes redundant nullable branches in nested loops."
+      "slowdown_confirmed": true,
+      "reason": "Empirical threshold nuance under search semantics: runtime did not cross super-linear threshold within bounded timeout."
+    },
+    {
+      "pattern": "\\d*\\d*$",
+      "intended": "polynomial",
+      "analyzer": "polynomial",
+      "path_counter": "polynomial",
+      "benchmark": "exponential",
+      "match_mode": "search",
+      "slowdown_confirmed": true,
+      "reason": "Empirical threshold nuance under search semantics: runtime did not cross super-linear threshold within bounded timeout."
     },
     {
       "pattern": "[0-9]*[0-9]*x",
@@ -219,8 +219,8 @@
       "match_mode": "fullmatch",
       "slowdown_confirmed": true,
       "status_label": "confirmed by measurement",
-      "growth_ratio": 96122.94,
-      "fitted_degree": 8.0,
+      "growth_ratio": 40802.91,
+      "fitted_degree": 7.61,
       "paths": [
         0,
         1,
@@ -230,7 +230,7 @@
         16,
         32
       ],
-      "benchmark_max_ms": 297.98
+      "benchmark_max_ms": 175.45
     },
     {
       "pattern": "(a*)*",
@@ -242,8 +242,8 @@
       "match_mode": "fullmatch",
       "slowdown_confirmed": true,
       "status_label": "confirmed by measurement",
-      "growth_ratio": 116666.67,
-      "fitted_degree": 6.9,
+      "growth_ratio": 32819.97,
+      "fitted_degree": 4.05,
       "paths": [
         2,
         1,
@@ -253,7 +253,7 @@
         16,
         32
       ],
-      "benchmark_max_ms": 350.0
+      "benchmark_max_ms": 246.15
     },
     {
       "pattern": "((a+)+)+",
@@ -265,8 +265,8 @@
       "match_mode": "fullmatch",
       "slowdown_confirmed": true,
       "status_label": "confirmed by measurement",
-      "growth_ratio": 64814.81,
-      "fitted_degree": 4.11,
+      "growth_ratio": 56451.61,
+      "fitted_degree": 5.04,
       "paths": [
         0,
         1,
@@ -288,8 +288,8 @@
       "match_mode": "fullmatch",
       "slowdown_confirmed": true,
       "status_label": "confirmed by measurement",
-      "growth_ratio": 3946.73,
-      "fitted_degree": 5.35,
+      "growth_ratio": 116666.67,
+      "fitted_degree": 8.8,
       "paths": [
         0,
         1,
@@ -299,7 +299,7 @@
         8,
         13
       ],
-      "benchmark_max_ms": 8.68
+      "benchmark_max_ms": 350.0
     },
     {
       "pattern": "(a|a+)+",
@@ -311,8 +311,8 @@
       "match_mode": "fullmatch",
       "slowdown_confirmed": true,
       "status_label": "confirmed by measurement",
-      "growth_ratio": 79545.45,
-      "fitted_degree": 8.82,
+      "growth_ratio": 63636.36,
+      "fitted_degree": 4.43,
       "paths": [
         0,
         2,
@@ -331,11 +331,11 @@
       "analyzer": "exponential",
       "path_counter": "exponential",
       "benchmark": "exponential",
-      "match_mode": "fullmatch",
+      "match_mode": "search",
       "slowdown_confirmed": true,
       "status_label": "confirmed by measurement",
-      "growth_ratio": 92105.26,
-      "fitted_degree": 6.3,
+      "growth_ratio": 66037.74,
+      "fitted_degree": 3.66,
       "paths": [
         0,
         2,
@@ -357,8 +357,8 @@
       "match_mode": "search",
       "slowdown_confirmed": true,
       "status_label": "confirmed by measurement",
-      "growth_ratio": 46666.67,
-      "fitted_degree": 3.53,
+      "growth_ratio": 62500.0,
+      "fitted_degree": 3.47,
       "paths": [
         0,
         1,
@@ -380,8 +380,8 @@
       "match_mode": "fullmatch",
       "slowdown_confirmed": true,
       "status_label": "confirmed by measurement",
-      "growth_ratio": 85365.85,
-      "fitted_degree": 7.19,
+      "growth_ratio": 70000.0,
+      "fitted_degree": 6.96,
       "paths": [
         0,
         1,
@@ -403,8 +403,8 @@
       "match_mode": "fullmatch",
       "slowdown_confirmed": true,
       "status_label": "confirmed by measurement",
-      "growth_ratio": 71428.57,
-      "fitted_degree": 7.21,
+      "growth_ratio": 67307.69,
+      "fitted_degree": 3.64,
       "paths": [
         0,
         1,
@@ -422,12 +422,12 @@
       "intended": "exponential",
       "analyzer": "exponential",
       "path_counter": "exponential",
-      "benchmark": "linear",
+      "benchmark": "exponential",
       "match_mode": "fullmatch",
-      "slowdown_confirmed": false,
-      "status_label": "structurally ambiguous only",
-      "growth_ratio": 5.35,
-      "fitted_degree": 1.0,
+      "slowdown_confirmed": true,
+      "status_label": "confirmed by measurement",
+      "growth_ratio": 120689.66,
+      "fitted_degree": 7.15,
       "paths": [
         0,
         1,
@@ -437,7 +437,7 @@
         4,
         8
       ],
-      "benchmark_max_ms": 0.01
+      "benchmark_max_ms": 350.0
     },
     {
       "pattern": "(ba*a*)+",
@@ -445,12 +445,12 @@
       "intended": "exponential",
       "analyzer": "exponential",
       "path_counter": "polynomial",
-      "benchmark": "linear",
+      "benchmark": "exponential",
       "match_mode": "fullmatch",
-      "slowdown_confirmed": false,
-      "status_label": "structurally ambiguous only",
-      "growth_ratio": 1.96,
-      "fitted_degree": 1.0,
+      "slowdown_confirmed": true,
+      "status_label": "confirmed by measurement",
+      "growth_ratio": 71428.57,
+      "fitted_degree": 6.92,
       "paths": [
         0,
         1,
@@ -460,7 +460,7 @@
         6,
         9
       ],
-      "benchmark_max_ms": 0.02
+      "benchmark_max_ms": 350.0
     },
     {
       "pattern": "([a-z]+)+",
@@ -472,8 +472,8 @@
       "match_mode": "fullmatch",
       "slowdown_confirmed": true,
       "status_label": "confirmed by measurement",
-      "growth_ratio": 85929.77,
-      "fitted_degree": 7.91,
+      "growth_ratio": 51401.68,
+      "fitted_degree": 7.71,
       "paths": [
         0,
         1,
@@ -483,7 +483,7 @@
         16,
         32
       ],
-      "benchmark_max_ms": 300.75
+      "benchmark_max_ms": 210.75
     },
     {
       "pattern": "(a+a+)+",
@@ -495,8 +495,8 @@
       "match_mode": "fullmatch",
       "slowdown_confirmed": true,
       "status_label": "confirmed by measurement",
-      "growth_ratio": 47306.41,
-      "fitted_degree": 7.65,
+      "growth_ratio": 30541.95,
+      "fitted_degree": 7.34,
       "paths": [
         0,
         0,
@@ -506,7 +506,7 @@
         8,
         16
       ],
-      "benchmark_max_ms": 160.84
+      "benchmark_max_ms": 116.06
     },
     {
       "pattern": "(0|00)+1",
@@ -515,11 +515,11 @@
       "analyzer": "exponential",
       "path_counter": "exponential",
       "benchmark": "exponential",
-      "match_mode": "search",
+      "match_mode": "fullmatch",
       "slowdown_confirmed": true,
       "status_label": "confirmed by measurement",
-      "growth_ratio": 6971.41,
-      "fitted_degree": 5.54,
+      "growth_ratio": 120689.66,
+      "fitted_degree": 8.79,
       "paths": [
         0,
         0,
@@ -529,7 +529,7 @@
         5,
         8
       ],
-      "benchmark_max_ms": 22.31
+      "benchmark_max_ms": 350.0
     },
     {
       "pattern": "(1+)+0",
@@ -541,8 +541,8 @@
       "match_mode": "search",
       "slowdown_confirmed": true,
       "status_label": "confirmed by measurement",
-      "growth_ratio": 97222.22,
-      "fitted_degree": 7.02,
+      "growth_ratio": 70000.0,
+      "fitted_degree": 6.7,
       "paths": [
         0,
         0,
@@ -561,11 +561,11 @@
       "analyzer": "exponential",
       "path_counter": "exponential",
       "benchmark": "exponential",
-      "match_mode": "search",
+      "match_mode": "fullmatch",
       "slowdown_confirmed": true,
       "status_label": "confirmed by measurement",
-      "growth_ratio": 3798.92,
-      "fitted_degree": 3.26,
+      "growth_ratio": 112903.23,
+      "fitted_degree": 8.75,
       "paths": [
         0,
         0,
@@ -575,7 +575,7 @@
         5,
         8
       ],
-      "benchmark_max_ms": 22.79
+      "benchmark_max_ms": 350.0
     },
     {
       "pattern": "(\\d+)+",
@@ -587,8 +587,8 @@
       "match_mode": "fullmatch",
       "slowdown_confirmed": true,
       "status_label": "confirmed by measurement",
-      "growth_ratio": 51470.59,
-      "fitted_degree": 3.39,
+      "growth_ratio": 58941.66,
+      "fitted_degree": 7.73,
       "paths": [
         0,
         1,
@@ -598,7 +598,7 @@
         16,
         32
       ],
-      "benchmark_max_ms": 350.0
+      "benchmark_max_ms": 241.66
     },
     {
       "pattern": "(a?a?)+$",
@@ -610,8 +610,8 @@
       "match_mode": "fullmatch",
       "slowdown_confirmed": true,
       "status_label": "confirmed by measurement",
-      "growth_ratio": 43209.88,
-      "fitted_degree": 4.47,
+      "growth_ratio": 58333.33,
+      "fitted_degree": 4.35,
       "paths": [
         1,
         2,
@@ -629,12 +629,12 @@
       "intended": "exponential",
       "analyzer": "exponential",
       "path_counter": "exponential",
-      "benchmark": "linear",
-      "match_mode": "search",
-      "slowdown_confirmed": false,
-      "status_label": "structurally ambiguous only",
-      "growth_ratio": 4.75,
-      "fitted_degree": 1.0,
+      "benchmark": "exponential",
+      "match_mode": "fullmatch",
+      "slowdown_confirmed": true,
+      "status_label": "confirmed by measurement",
+      "growth_ratio": 64814.81,
+      "fitted_degree": 3.83,
       "paths": [
         1,
         1,
@@ -644,7 +644,7 @@
         16,
         32
       ],
-      "benchmark_max_ms": 0.02
+      "benchmark_max_ms": 350.0
     },
     {
       "pattern": "((0+)+)+",
@@ -656,8 +656,8 @@
       "match_mode": "fullmatch",
       "slowdown_confirmed": true,
       "status_label": "confirmed by measurement",
-      "growth_ratio": 59322.03,
-      "fitted_degree": 4.08,
+      "growth_ratio": 61403.51,
+      "fitted_degree": 5.09,
       "paths": [
         0,
         1,
@@ -679,8 +679,8 @@
       "match_mode": "search",
       "slowdown_confirmed": true,
       "status_label": "confirmed by measurement",
-      "growth_ratio": 77777.78,
-      "fitted_degree": 6.99,
+      "growth_ratio": 71428.57,
+      "fitted_degree": 6.72,
       "paths": [
         0,
         1,
@@ -702,8 +702,8 @@
       "match_mode": "fullmatch",
       "slowdown_confirmed": true,
       "status_label": "confirmed by measurement",
-      "growth_ratio": 38888.89,
-      "fitted_degree": 3.24,
+      "growth_ratio": 74468.09,
+      "fitted_degree": 6.96,
       "paths": [
         3,
         1,
@@ -725,8 +725,8 @@
       "match_mode": "search",
       "slowdown_confirmed": true,
       "status_label": "confirmed by measurement",
-      "growth_ratio": 233.17,
-      "fitted_degree": 2.64,
+      "growth_ratio": 215.99,
+      "fitted_degree": 2.59,
       "paths": [
         0,
         1,
@@ -736,7 +736,7 @@
         5,
         6
       ],
-      "benchmark_max_ms": 4.87
+      "benchmark_max_ms": 6.63
     },
     {
       "pattern": "a*a*a*b",
@@ -748,8 +748,8 @@
       "match_mode": "fullmatch",
       "slowdown_confirmed": true,
       "status_label": "confirmed by measurement",
-      "growth_ratio": 237.06,
-      "fitted_degree": 2.65,
+      "growth_ratio": 214.6,
+      "fitted_degree": 2.6,
       "paths": [
         0,
         1,
@@ -759,7 +759,7 @@
         15,
         21
       ],
-      "benchmark_max_ms": 4.74
+      "benchmark_max_ms": 6.61
     },
     {
       "pattern": "a+a+b",
@@ -771,8 +771,8 @@
       "match_mode": "search",
       "slowdown_confirmed": true,
       "status_label": "confirmed by measurement",
-      "growth_ratio": 210.92,
-      "fitted_degree": 2.6,
+      "growth_ratio": 203.05,
+      "fitted_degree": 2.58,
       "paths": [
         0,
         0,
@@ -782,7 +782,7 @@
         3,
         4
       ],
-      "benchmark_max_ms": 4.56
+      "benchmark_max_ms": 6.58
     },
     {
       "pattern": "a+a+a+b",
@@ -794,8 +794,8 @@
       "match_mode": "fullmatch",
       "slowdown_confirmed": true,
       "status_label": "confirmed by measurement",
-      "growth_ratio": 251.66,
-      "fitted_degree": 2.69,
+      "growth_ratio": 229.11,
+      "fitted_degree": 2.62,
       "paths": [
         0,
         0,
@@ -805,7 +805,7 @@
         3,
         6
       ],
-      "benchmark_max_ms": 4.45
+      "benchmark_max_ms": 6.42
     },
     {
       "pattern": "x*x*y",
@@ -817,8 +817,8 @@
       "match_mode": "search",
       "slowdown_confirmed": true,
       "status_label": "confirmed by measurement",
-      "growth_ratio": 221.53,
-      "fitted_degree": 2.61,
+      "growth_ratio": 215.96,
+      "fitted_degree": 2.6,
       "paths": [
         0,
         1,
@@ -828,7 +828,7 @@
         5,
         6
       ],
-      "benchmark_max_ms": 4.76
+      "benchmark_max_ms": 6.5
     },
     {
       "pattern": "0*0*1",
@@ -840,8 +840,8 @@
       "match_mode": "search",
       "slowdown_confirmed": true,
       "status_label": "confirmed by measurement",
-      "growth_ratio": 234.91,
-      "fitted_degree": 2.64,
+      "growth_ratio": 198.29,
+      "fitted_degree": 2.55,
       "paths": [
         0,
         1,
@@ -851,7 +851,7 @@
         5,
         6
       ],
-      "benchmark_max_ms": 4.79
+      "benchmark_max_ms": 6.5
     },
     {
       "pattern": "(a|b)*a*(a|b)*c",
@@ -859,12 +859,12 @@
       "intended": "polynomial",
       "analyzer": "polynomial",
       "path_counter": "polynomial",
-      "benchmark": "polynomial",
-      "match_mode": "fullmatch",
+      "benchmark": "exponential",
+      "match_mode": "search",
       "slowdown_confirmed": true,
       "status_label": "confirmed by measurement",
-      "growth_ratio": 44.43,
-      "fitted_degree": 1.82,
+      "growth_ratio": 61.25,
+      "fitted_degree": null,
       "paths": [
         0,
         1,
@@ -874,7 +874,7 @@
         15,
         21
       ],
-      "benchmark_max_ms": 1.22
+      "benchmark_max_ms": 350.0
     },
     {
       "pattern": "a*b*a*b*c",
@@ -886,8 +886,8 @@
       "match_mode": "search",
       "slowdown_confirmed": true,
       "status_label": "confirmed by measurement",
-      "growth_ratio": 359.61,
-      "fitted_degree": 2.83,
+      "growth_ratio": 181.79,
+      "fitted_degree": 2.51,
       "paths": [
         0,
         1,
@@ -897,7 +897,7 @@
         5,
         6
       ],
-      "benchmark_max_ms": 42.54
+      "benchmark_max_ms": 7.24
     },
     {
       "pattern": "(a|c)*(a|d)*b",
@@ -909,8 +909,8 @@
       "match_mode": "fullmatch",
       "slowdown_confirmed": true,
       "status_label": "confirmed by measurement",
-      "growth_ratio": 40.52,
-      "fitted_degree": 1.8,
+      "growth_ratio": 44.41,
+      "fitted_degree": 1.83,
       "paths": [
         0,
         1,
@@ -920,7 +920,7 @@
         5,
         6
       ],
-      "benchmark_max_ms": 1.23
+      "benchmark_max_ms": 1.79
     },
     {
       "pattern": "\\d*\\d*$",
@@ -928,12 +928,12 @@
       "intended": "polynomial",
       "analyzer": "polynomial",
       "path_counter": "polynomial",
-      "benchmark": "polynomial",
+      "benchmark": "exponential",
       "match_mode": "search",
       "slowdown_confirmed": true,
       "status_label": "confirmed by measurement",
-      "growth_ratio": 363.22,
-      "fitted_degree": 2.83,
+      "growth_ratio": 357.27,
+      "fitted_degree": 2.82,
       "paths": [
         1,
         2,
@@ -943,7 +943,7 @@
         6,
         7
       ],
-      "benchmark_max_ms": 46.6
+      "benchmark_max_ms": 66.38
     },
     {
       "pattern": "[0-9]*[0-9]*x",
@@ -955,7 +955,7 @@
       "match_mode": "search",
       "slowdown_confirmed": true,
       "status_label": "confirmed by measurement",
-      "growth_ratio": 296.41,
+      "growth_ratio": 302.15,
       "fitted_degree": 2.75,
       "paths": [
         0,
@@ -966,7 +966,7 @@
         0,
         0
       ],
-      "benchmark_max_ms": 16.48
+      "benchmark_max_ms": 24.32
     },
     {
       "pattern": "[a-z]*[a-z]*!",
@@ -978,7 +978,7 @@
       "match_mode": "search",
       "slowdown_confirmed": true,
       "status_label": "confirmed by measurement",
-      "growth_ratio": 300.38,
+      "growth_ratio": 298.16,
       "fitted_degree": 2.75,
       "paths": [
         0,
@@ -989,7 +989,7 @@
         5,
         6
       ],
-      "benchmark_max_ms": 16.46
+      "benchmark_max_ms": 24.33
     },
     {
       "pattern": "a*ba*b",
@@ -1001,7 +1001,7 @@
       "match_mode": "search",
       "slowdown_confirmed": false,
       "status_label": "safe",
-      "growth_ratio": 1.24,
+      "growth_ratio": 1.22,
       "fitted_degree": null,
       "paths": [
         0,
@@ -1012,7 +1012,7 @@
         1,
         1
       ],
-      "benchmark_max_ms": 0.0
+      "benchmark_max_ms": 0.01
     },
     {
       "pattern": "(a*b)*a*",
@@ -1024,7 +1024,7 @@
       "match_mode": "search",
       "slowdown_confirmed": false,
       "status_label": "safe",
-      "growth_ratio": 1.08,
+      "growth_ratio": 1.12,
       "fitted_degree": null,
       "paths": [
         1,
@@ -1047,8 +1047,8 @@
       "match_mode": "search",
       "slowdown_confirmed": true,
       "status_label": "confirmed by measurement",
-      "growth_ratio": 201.16,
-      "fitted_degree": 2.58,
+      "growth_ratio": 222.47,
+      "fitted_degree": 2.64,
       "paths": [
         0,
         1,
@@ -1058,7 +1058,7 @@
         5,
         6
       ],
-      "benchmark_max_ms": 4.45
+      "benchmark_max_ms": 6.59
     },
     {
       "pattern": "m*m*n",
@@ -1070,8 +1070,8 @@
       "match_mode": "search",
       "slowdown_confirmed": true,
       "status_label": "confirmed by measurement",
-      "growth_ratio": 217.17,
-      "fitted_degree": 2.6,
+      "growth_ratio": 202.45,
+      "fitted_degree": 2.57,
       "paths": [
         0,
         1,
@@ -1081,7 +1081,7 @@
         5,
         6
       ],
-      "benchmark_max_ms": 4.45
+      "benchmark_max_ms": 6.62
     },
     {
       "pattern": "p*p*q",
@@ -1093,8 +1093,8 @@
       "match_mode": "search",
       "slowdown_confirmed": true,
       "status_label": "confirmed by measurement",
-      "growth_ratio": 222.69,
-      "fitted_degree": 2.61,
+      "growth_ratio": 224.31,
+      "fitted_degree": 2.63,
       "paths": [
         0,
         1,
@@ -1104,7 +1104,7 @@
         5,
         6
       ],
-      "benchmark_max_ms": 4.45
+      "benchmark_max_ms": 6.66
     },
     {
       "pattern": "s*s*t",
@@ -1116,8 +1116,8 @@
       "match_mode": "search",
       "slowdown_confirmed": true,
       "status_label": "confirmed by measurement",
-      "growth_ratio": 167.39,
-      "fitted_degree": 2.48,
+      "growth_ratio": 224.72,
+      "fitted_degree": 2.62,
       "paths": [
         0,
         1,
@@ -1127,7 +1127,7 @@
         5,
         6
       ],
-      "benchmark_max_ms": 4.59
+      "benchmark_max_ms": 6.58
     },
     {
       "pattern": "w*w*v",
@@ -1139,8 +1139,8 @@
       "match_mode": "search",
       "slowdown_confirmed": true,
       "status_label": "confirmed by measurement",
-      "growth_ratio": 223.62,
-      "fitted_degree": 2.62,
+      "growth_ratio": 205.14,
+      "fitted_degree": 2.56,
       "paths": [
         0,
         1,
@@ -1150,7 +1150,7 @@
         5,
         6
       ],
-      "benchmark_max_ms": 4.54
+      "benchmark_max_ms": 6.58
     },
     {
       "pattern": "k*k*k*m",
@@ -1162,8 +1162,8 @@
       "match_mode": "fullmatch",
       "slowdown_confirmed": true,
       "status_label": "confirmed by measurement",
-      "growth_ratio": 227.34,
-      "fitted_degree": 2.62,
+      "growth_ratio": 199.9,
+      "fitted_degree": 2.56,
       "paths": [
         0,
         1,
@@ -1173,7 +1173,7 @@
         15,
         21
       ],
-      "benchmark_max_ms": 4.55
+      "benchmark_max_ms": 6.66
     },
     {
       "pattern": "a*b+",
@@ -1185,8 +1185,8 @@
       "match_mode": "search",
       "slowdown_confirmed": false,
       "status_label": "safe",
-      "growth_ratio": 1.5,
-      "fitted_degree": null,
+      "growth_ratio": 1.49,
+      "fitted_degree": 1.0,
       "paths": [
         0,
         1,
@@ -1196,7 +1196,7 @@
         1,
         1
       ],
-      "benchmark_max_ms": 0.0
+      "benchmark_max_ms": 0.01
     },
     {
       "pattern": "a+b+c+",
@@ -1208,8 +1208,8 @@
       "match_mode": "search",
       "slowdown_confirmed": false,
       "status_label": "safe",
-      "growth_ratio": 2.16,
-      "fitted_degree": null,
+      "growth_ratio": 1.6,
+      "fitted_degree": 1.0,
       "paths": [
         0,
         0,
@@ -1231,8 +1231,8 @@
       "match_mode": "search",
       "slowdown_confirmed": false,
       "status_label": "safe",
-      "growth_ratio": 3.31,
-      "fitted_degree": null,
+      "growth_ratio": 3.38,
+      "fitted_degree": 1.0,
       "paths": [
         0,
         0,
@@ -1242,7 +1242,7 @@
         1,
         1
       ],
-      "benchmark_max_ms": 0.01
+      "benchmark_max_ms": 0.02
     },
     {
       "pattern": "hello",
@@ -1254,7 +1254,7 @@
       "match_mode": "search",
       "slowdown_confirmed": false,
       "status_label": "safe",
-      "growth_ratio": 1.0,
+      "growth_ratio": 1.27,
       "fitted_degree": null,
       "paths": [
         0,
@@ -1300,7 +1300,7 @@
       "match_mode": "search",
       "slowdown_confirmed": false,
       "status_label": "safe",
-      "growth_ratio": 1.12,
+      "growth_ratio": 1.14,
       "fitted_degree": null,
       "paths": [
         0,
@@ -1323,7 +1323,7 @@
       "match_mode": "search",
       "slowdown_confirmed": false,
       "status_label": "safe",
-      "growth_ratio": 1.35,
+      "growth_ratio": 1.14,
       "fitted_degree": null,
       "paths": [
         0,
@@ -1334,7 +1334,7 @@
         1,
         1
       ],
-      "benchmark_max_ms": 0.0
+      "benchmark_max_ms": 0.01
     },
     {
       "pattern": "^[a-z]+@[a-z]+\\.[a-z]+$",
@@ -1346,7 +1346,7 @@
       "match_mode": "search",
       "slowdown_confirmed": false,
       "status_label": "safe",
-      "growth_ratio": 2.8,
+      "growth_ratio": 4.27,
       "fitted_degree": null,
       "paths": [
         0,
@@ -1369,7 +1369,7 @@
       "match_mode": "search",
       "slowdown_confirmed": false,
       "status_label": "safe",
-      "growth_ratio": 3.4,
+      "growth_ratio": 4.1,
       "fitted_degree": null,
       "paths": [
         0,
@@ -1392,7 +1392,7 @@
       "match_mode": "search",
       "slowdown_confirmed": false,
       "status_label": "safe",
-      "growth_ratio": 1.6,
+      "growth_ratio": 1.73,
       "fitted_degree": null,
       "paths": [
         0,
@@ -1415,7 +1415,7 @@
       "match_mode": "search",
       "slowdown_confirmed": false,
       "status_label": "safe",
-      "growth_ratio": 0.9,
+      "growth_ratio": 1.2,
       "fitted_degree": null,
       "paths": [
         0,
@@ -1438,7 +1438,7 @@
       "match_mode": "search",
       "slowdown_confirmed": false,
       "status_label": "safe",
-      "growth_ratio": 1.0,
+      "growth_ratio": 1.05,
       "fitted_degree": null,
       "paths": [
         0,
@@ -1461,7 +1461,7 @@
       "match_mode": "search",
       "slowdown_confirmed": false,
       "status_label": "safe",
-      "growth_ratio": 1.03,
+      "growth_ratio": 1.14,
       "fitted_degree": null,
       "paths": [
         0,
@@ -1484,7 +1484,7 @@
       "match_mode": "search",
       "slowdown_confirmed": false,
       "status_label": "safe",
-      "growth_ratio": 2.52,
+      "growth_ratio": 1.0,
       "fitted_degree": null,
       "paths": [
         0,
@@ -1495,7 +1495,7 @@
         0,
         0
       ],
-      "benchmark_max_ms": 0.01
+      "benchmark_max_ms": 0.0
     },
     {
       "pattern": "ab*c+",
@@ -1507,7 +1507,7 @@
       "match_mode": "search",
       "slowdown_confirmed": false,
       "status_label": "safe",
-      "growth_ratio": 1.17,
+      "growth_ratio": 1.55,
       "fitted_degree": null,
       "paths": [
         0,
@@ -1518,7 +1518,7 @@
         1,
         1
       ],
-      "benchmark_max_ms": 0.0
+      "benchmark_max_ms": 0.01
     },
     {
       "pattern": "(x|y)*z",
@@ -1530,7 +1530,7 @@
       "match_mode": "search",
       "slowdown_confirmed": false,
       "status_label": "safe",
-      "growth_ratio": 1.08,
+      "growth_ratio": 1.47,
       "fitted_degree": null,
       "paths": [
         0,
@@ -1541,7 +1541,7 @@
         1,
         1
       ],
-      "benchmark_max_ms": 0.0
+      "benchmark_max_ms": 0.01
     },
     {
       "pattern": "1*0+",
@@ -1553,7 +1553,7 @@
       "match_mode": "search",
       "slowdown_confirmed": false,
       "status_label": "safe",
-      "growth_ratio": 1.07,
+      "growth_ratio": 1.18,
       "fitted_degree": null,
       "paths": [
         0,
@@ -1576,7 +1576,7 @@
       "match_mode": "search",
       "slowdown_confirmed": false,
       "status_label": "safe",
-      "growth_ratio": 1.21,
+      "growth_ratio": 1.88,
       "fitted_degree": null,
       "paths": [
         0,
@@ -1587,7 +1587,7 @@
         1,
         1
       ],
-      "benchmark_max_ms": 0.0
+      "benchmark_max_ms": 0.01
     },
     {
       "pattern": "cat|dog|fish",
@@ -1599,7 +1599,7 @@
       "match_mode": "search",
       "slowdown_confirmed": false,
       "status_label": "safe",
-      "growth_ratio": 1.0,
+      "growth_ratio": 1.94,
       "fitted_degree": null,
       "paths": [
         0,
@@ -1622,7 +1622,7 @@
       "match_mode": "search",
       "slowdown_confirmed": false,
       "status_label": "safe",
-      "growth_ratio": 1.1,
+      "growth_ratio": 1.67,
       "fitted_degree": null,
       "paths": [
         0,
@@ -1645,7 +1645,7 @@
       "match_mode": "search",
       "slowdown_confirmed": false,
       "status_label": "safe",
-      "growth_ratio": 0.8,
+      "growth_ratio": 1.2,
       "fitted_degree": null,
       "paths": [
         0,
@@ -1668,7 +1668,7 @@
       "match_mode": "search",
       "slowdown_confirmed": false,
       "status_label": "safe",
-      "growth_ratio": 2.0,
+      "growth_ratio": 1.0,
       "fitted_degree": null,
       "paths": [
         0,

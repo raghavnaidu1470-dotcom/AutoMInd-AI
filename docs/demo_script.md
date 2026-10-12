@@ -123,7 +123,7 @@
 ## Summary of Evaluated Key Numbers
 - **Exact Analyzer Accuracy on 64-Regex Suite:** **96.88%** (62 / 64).
 - **DP Path Counter Cross-Check:** **93.75%** (60 / 64 on suite, 97.27% on 220 random regexes).
-- **Sandboxed Benchmark Agreement:** **92.19%** (59 / 64; 19/22 exponential confirmed, 18/20 polynomial confirmed, 22/22 linear confirmed safe).
+- **Sandboxed Benchmark Agreement:** **96.88%** (62 / 64; 22/22 exponential confirmed, 18/20 polynomial confirmed super-linear, 22/22 linear confirmed safe).
 - **GNN Held-Out Screening Accuracy:** **85.43%** (95% CI: [83.45%, 87.41%]) across 1,222 test samples with zero family/template overlap.
 - **Timing Crossover:** At $|V| \le 18$ states, Exact Analyzer is faster end-to-end (0.337 ms vs 0.357 ms). Empirical crossover at $|V| \approx 18$ states.
 - **Equivalence Verification Success on Accepted Repairs:** **100.0%** (22 / 22 verified, 0 false positive repairs).

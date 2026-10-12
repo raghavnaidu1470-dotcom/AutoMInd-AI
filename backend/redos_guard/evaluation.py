@@ -236,18 +236,6 @@ def run_comprehensive_evaluation(save_path: Optional[str] = None) -> Dict[str, A
                     "paths to a constant (<= 1). Both exact topological analysis and empirical runtime "
                     "confirm LINEAR risk, correcting the intended polynomial label."
                 )
-            elif pattern == "(a|b|ab)+":
-                reason = (
-                    "Python re engine greedy branch optimization: the engine greedily selects branch 'a' "
-                    "and prunes the alternative branch 'ab' without full combinatorial exploration."
-                )
-            elif pattern == "(ba*a*)+":
-                reason = (
-                    "Attack string pump localization: repeated pump substring remains confined within inner "
-                    "star loop rather than exercising the outer plus repetition."
-                )
-            elif pattern == "(a|b*)+":
-                reason = "Nullable loop optimization: Python re prunes redundant nullable branches in nested loops."
             elif ana_pred == intended and bm_pred != intended:
                 reason = (
                     f"Empirical threshold nuance under {match_mode} semantics: runtime did not cross "

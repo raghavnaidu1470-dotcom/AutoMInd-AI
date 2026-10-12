@@ -15,6 +15,7 @@ for empirical validation under both full-match and search semantics.
 from collections import defaultdict, deque
 from enum import Enum
 from typing import Dict, List, Set, Tuple, Optional, Any, Union
+import re
 import time
 from dataclasses import dataclass, field
 from pydantic import BaseModel, Field
@@ -339,6 +340,7 @@ class AmbiguityAnalyzer:
         g2_adj: Dict[Tuple[str, str], List[Tuple[str, str]]] = defaultdict(list)
         g2_edge_symbols: Dict[Tuple[Tuple[str, str], Tuple[str, str]], str] = {}
         g2_multi_edge: Set[Tuple[str, str]] = set()
+        g2_multi_edge_syms: Dict[Tuple[str, str], Set[str]] = defaultdict(set)
         visited_g2: Set[Tuple[str, str]] = set()
         q = deque([(start_st, start_st)])
         visited_g2.add((start_st, start_st))
@@ -356,6 +358,7 @@ class AmbiguityAnalyzer:
                         if u == v and edge_u.target == edge_v.target:
                             if edge_u.orig_trans_id != edge_v.orig_trans_id or edge_u.multiplicity >= 2 or edge_v.multiplicity >= 2:
                                 g2_multi_edge.add((u, v))
+                                g2_multi_edge_syms[(u, v)].add(sym)
                         if nxt not in visited_g2:
                             visited_g2.add(nxt)
                             q.append(nxt)
@@ -398,18 +401,8 @@ class AmbiguityAnalyzer:
         if eda_scc is None:
             return None
 
-        # Extract offending states, transitions, and pump symbol
+        # Extract offending states and transitions
         states_in_scc = sorted(list(set(p[0] for p in eda_scc) | set(p[1] for p in eda_scc)))
-        pump_sym = all_syms[0] if all_syms else "a"
-        rep_state = states_in_scc[0]
-
-        for u_pair in eda_scc:
-            for v_pair in g2_adj.get(u_pair, []):
-                if v_pair in eda_scc and (u_pair, v_pair) in g2_edge_symbols:
-                    pump_sym = g2_edge_symbols[(u_pair, v_pair)]
-                    rep_state = u_pair[0]
-                    break
-
         offending_states = sorted(list(set(states_in_scc)))
         offending_trans: List[str] = []
         for s in offending_states:
@@ -419,16 +412,171 @@ class AmbiguityAnalyzer:
                         offending_trans.append(edge.orig_trans_id)
         offending_trans = sorted(list(set(offending_trans)))
 
-        prefix = self._find_prefix_to_state(start_st, rep_state, trans_by_state_sym, useful)
-        suffix = self._synthesize_dfa_failing_suffix(nfa, dfa_obj, prefix, pump_sym)
-        attack_str = AttackString(prefix=prefix, pump=pump_sym, suffix=suffix)
+        # Synthesize attack string using shortest pair-graph witness cycle
+        attack_str = self._synthesize_eda_witness_attack(
+            eda_scc=eda_scc,
+            g2_adj=g2_adj,
+            g2_edge_symbols=g2_edge_symbols,
+            g2_multi_edge_syms=g2_multi_edge_syms,
+            trans_by_state_sym=trans_by_state_sym,
+            useful=useful,
+            all_syms=all_syms,
+            start_st=start_st,
+            nfa=nfa,
+            dfa_obj=dfa_obj,
+        )
 
         explanation = (
             f"Exponential Ambiguity (EDA) detected via pair-graph criterion. "
-            f"A strongly connected component contains overlapping parallel cycles on symbol '{pump_sym}', "
+            f"A strongly connected component contains overlapping parallel cycles on pump '{attack_str.pump}', "
             f"allowing 2^N distinct paths for repeated input."
         )
         return offending_states, offending_trans, attack_str, explanation
+
+    def _synthesize_eda_witness_attack(
+        self,
+        eda_scc: Set[Tuple[str, str]],
+        g2_adj: Dict[Tuple[str, str], List[Tuple[str, str]]],
+        g2_edge_symbols: Dict[Tuple[Tuple[str, str], Tuple[str, str]], str],
+        g2_multi_edge_syms: Dict[Tuple[str, str], Set[str]],
+        trans_by_state_sym: Dict[Tuple[str, str], List[_EpsFreeTransition]],
+        useful: Set[str],
+        all_syms: List[str],
+        start_st: str,
+        nfa: Automaton,
+        dfa_obj: Optional[Automaton],
+    ) -> AttackString:
+        """
+        Synthesizes attack string for exponential ambiguity by choosing the pump as the
+        shortest word v for which the pair-graph witness shows two distinct cycles on v.
+        """
+        diag = {p for p in eda_scc if p[0] == p[1]}
+        off_diag = {p for p in eda_scc if p[0] != p[1]}
+        witness_candidates: List[Tuple[str, str]] = []
+
+        # 1. Multi-edges on diagonal (length 1 cycle with distinct transitions)
+        for pp in diag:
+            for sym in sorted(list(g2_multi_edge_syms.get(pp, set()))):
+                witness_candidates.append((sym, pp[0]))
+
+        # 2. Diagonal cycles through off-diagonal states: (p, p) -> (r, s) -> ... -> (p, p)
+        # where r != s guarantees two distinct paths in the NFA on the same word
+        for pp in diag:
+            for nxt in g2_adj.get(pp, []):
+                if nxt not in eda_scc or nxt[0] == nxt[1]:
+                    continue
+                sym1 = g2_edge_symbols.get((pp, nxt), "")
+                q_bfs: deque = deque([(nxt, [sym1])])
+                vis = {nxt}
+                while q_bfs:
+                    curr, sym_list = q_bfs.popleft()
+                    if curr == pp:
+                        w = "".join(sym_list)
+                        witness_candidates.append((w, pp[0]))
+                        break
+                    if len(sym_list) >= 4:
+                        break
+                    for succ in g2_adj.get(curr, []):
+                        if succ in eda_scc and succ not in vis:
+                            vis.add(succ)
+                            s_e = g2_edge_symbols.get((curr, succ), "")
+                            q_bfs.append((succ, sym_list + [s_e]))
+
+        # 3. Off-diagonal cycles (u, v) -> (u, v) in the SCC with u != v
+        for uv in off_diag:
+            q_bfs = deque([(uv, [])])
+            vis = {uv}
+            while q_bfs:
+                curr, sym_list = q_bfs.popleft()
+                if len(sym_list) >= 4:
+                    break
+                for nxt in g2_adj.get(curr, []):
+                    if nxt not in eda_scc:
+                        continue
+                    sym = g2_edge_symbols.get((curr, nxt), "")
+                    if nxt == uv:
+                        w = "".join(sym_list + [sym])
+                        witness_candidates.append((w, uv[0]))
+                        break
+                    if nxt not in vis:
+                        vis.add(nxt)
+                        q_bfs.append((nxt, sym_list + [sym]))
+
+        if not witness_candidates:
+            pump = all_syms[0] if all_syms else "a"
+            suf = self._synthesize_dfa_failing_suffix(nfa, dfa_obj, "", pump)
+            return AttackString(prefix="", pump=pump, suffix=suf)
+
+        min_len = min(len(w) for w, _ in witness_candidates)
+
+        cand_attacks: List[Tuple[int, int, AttackString]] = []
+        seen: Set[Tuple[str, str, str]] = set()
+
+        for w, st in witness_candidates:
+            if len(w) > min_len + 1:
+                continue
+            rotations = [w[i:] + w[:i] for i in range(len(w))]
+            for rw in rotations:
+                # If start_st can transition directly on rw, test prefix=""
+                can_start = bool(trans_by_state_sym.get((start_st, rw[0])))
+                if can_start:
+                    suf0 = self._synthesize_dfa_failing_suffix(nfa, dfa_obj, "", rw)
+                    key = ("", rw, suf0)
+                    if key not in seen:
+                        seen.add(key)
+                        cand_attacks.append((len(rw), 0, AttackString(prefix="", pump=rw, suffix=suf0)))
+
+                pref = self._find_prefix_to_state(start_st, st, trans_by_state_sym, useful)
+                suf = self._synthesize_dfa_failing_suffix(nfa, dfa_obj, pref, rw)
+                key = (pref, rw, suf)
+                if key not in seen:
+                    seen.add(key)
+                    cand_attacks.append((len(rw), 1 if pref else 0, AttackString(prefix=pref, pump=rw, suffix=suf)))
+
+        cand_attacks.sort(key=lambda x: (x[0], x[1], x[2].pump))
+
+        pat_str = getattr(nfa.metadata, "regex", None) if nfa.metadata else None
+        compiled_re = None
+        if pat_str:
+            try:
+                compiled_re = re.compile(pat_str)
+            except Exception:
+                compiled_re = None
+
+        best: Optional[AttackString] = None
+        for length, has_pref, att in cand_attacks[:6]:
+            if compiled_re:
+                s4 = att.build(repeats=4)
+                s8 = att.build(repeats=8)
+                t0 = time.perf_counter()
+                try:
+                    compiled_re.fullmatch(s4)
+                except Exception:
+                    pass
+                dt4 = time.perf_counter() - t0
+
+                t0 = time.perf_counter()
+                try:
+                    compiled_re.fullmatch(s8)
+                except Exception:
+                    pass
+                dt8 = time.perf_counter() - t0
+
+                if dt8 > 0.00002 and (dt4 <= 1e-6 or dt8 / dt4 > 2.0):
+                    best = att
+                    break
+            else:
+                best = att
+                break
+
+        if best is None and cand_attacks:
+            best = cand_attacks[0][2]
+        elif best is None:
+            pump = all_syms[0] if all_syms else "a"
+            suf = self._synthesize_dfa_failing_suffix(nfa, dfa_obj, "", pump)
+            best = AttackString(prefix="", pump=pump, suffix=suf)
+
+        return best
 
     def _check_pda(
         self,
