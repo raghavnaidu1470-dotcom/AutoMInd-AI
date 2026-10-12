@@ -264,32 +264,38 @@ export default function ReDoSGuardPanel({ onLoadIntoStudio }) {
               alignItems: 'center',
               gap: '0.5rem',
               background:
-                riskClass === 'exponential'
-                  ? 'rgba(239, 68, 68, 0.2)'
-                  : riskClass === 'polynomial'
-                  ? 'rgba(245, 158, 11, 0.2)'
-                  : 'rgba(16, 185, 129, 0.2)',
+                riskClass === 'linear'
+                  ? 'rgba(16, 185, 129, 0.2)'
+                  : analysisResult.slowdown_confirmed
+                  ? 'rgba(239, 68, 68, 0.25)'
+                  : 'rgba(245, 158, 11, 0.25)',
               border: `1.5px solid ${
-                riskClass === 'exponential'
+                riskClass === 'linear'
+                  ? '#10b981'
+                  : analysisResult.slowdown_confirmed
                   ? '#ef4444'
-                  : riskClass === 'polynomial'
-                  ? '#f59e0b'
-                  : '#10b981'
+                  : '#f59e0b'
               }`,
               color:
-                riskClass === 'exponential'
+                riskClass === 'linear'
+                  ? '#6ee7b7'
+                  : analysisResult.slowdown_confirmed
                   ? '#fca5a5'
-                  : riskClass === 'polynomial'
-                  ? '#fde68a'
-                  : '#6ee7b7',
+                  : '#fde68a',
               boxShadow:
-                riskClass === 'exponential'
-                  ? '0 0 12px rgba(239, 68, 68, 0.3)'
+                analysisResult.slowdown_confirmed
+                  ? '0 0 12px rgba(239, 68, 68, 0.35)'
                   : 'none',
             }}
           >
-            <span>{riskClass === 'exponential' ? '⚠️' : riskClass === 'polynomial' ? '⚡' : '✅'}</span>
-            <span>{riskClass.toUpperCase()} AMBIGUITY RISK</span>
+            <span>{riskClass === 'linear' ? '✅' : analysisResult.slowdown_confirmed ? '⚠️' : '⚡'}</span>
+            <span>
+              {riskClass === 'linear'
+                ? 'LINEAR / SAFE'
+                : analysisResult.slowdown_confirmed
+                ? `CONFIRMED BY MEASUREMENT (${riskClass.toUpperCase()})`
+                : `STRUCTURALLY AMBIGUOUS ONLY (${riskClass.toUpperCase()})`}
+            </span>
           </div>
         )}
       </div>
@@ -477,9 +483,31 @@ export default function ReDoSGuardPanel({ onLoadIntoStudio }) {
                     {copiedAttack ? '✓ Copied' : 'Copy'}
                   </button>
                 </div>
-                <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '0.4rem' }}>
                   {analysisResult.empirical_benchmark?.summary || 'Empirical sandboxed test ready.'}
-                </span>
+                </div>
+                {analysisResult.empirical_benchmark && (
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <span
+                      id="empirical-status-tag"
+                      className="badge"
+                      style={{
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        background: analysisResult.slowdown_confirmed ? 'rgba(239, 68, 68, 0.2)' : 'rgba(245, 158, 11, 0.2)',
+                        borderColor: analysisResult.slowdown_confirmed ? '#ef4444' : '#f59e0b',
+                        color: analysisResult.slowdown_confirmed ? '#fca5a5' : '#fde68a',
+                      }}
+                    >
+                      Measurement Status: {analysisResult.status_label || (analysisResult.slowdown_confirmed ? 'confirmed by measurement' : 'structurally ambiguous only')}
+                    </span>
+                    {analysisResult.empirical_benchmark.match_mode && (
+                      <span className="badge" style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+                        Semantics: {analysisResult.empirical_benchmark.match_mode}
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
             ) : (
               <div style={{ color: '#10b981', fontSize: '0.85rem' }}>
