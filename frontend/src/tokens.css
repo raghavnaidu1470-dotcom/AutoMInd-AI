@@ -1,0 +1,75 @@
+/**
+ * AutoMind-AI Design System Tokens
+ * =================================
+ * High-discipline technical blueprint / paper palette.
+ * Palette: cool off-white paper, slate ink, signal amber,
+ * muted green accept, brick red risk, pale green-bar tint.
+ */
+
+:root {
+  /* Core 6 Named Hex Color Tokens */
+  --paper-bg: #f8f9fa;
+  --ink-slate: #1e293b;
+  --amber-signal: #d97706;
+  --green-accept: #15803d;
+  --red-risk: #b91c1c;
+  --greenbar-tint: #edf7ed;
+
+  /* Supporting Paper & Slate Tones */
+  --paper-panel: #ffffff;
+  --paper-subtle: #f1f5f9;
+  --ink-secondary: #475569;
+  --ink-muted: #64748b;
+  --ink-border: #cbd5e1;
+  --ink-border-light: #e2e8f0;
+  --ink-border-strong: #94a3b8;
+
+  /* Semantic Background Tints */
+  --amber-tint: #fef3c7;
+  --green-tint: #f0fdf4;
+  --red-tint: #fee2e2;
+  --greenbar-alt: #ffffff;
+
+  /* Focus & Accessibility */
+  --focus-ring: #1d4ed8;
+  --focus-outline: 2px solid var(--focus-ring);
+
+  /* Typography Roles */
+  --font-ui: 'Atkinson Hyperlegible', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+
+  /* Type Scale */
+  --text-xs: 0.75rem;    /* 12px */
+  --text-sm: 0.8125rem;  /* 13px */
+  --text-base: 0.875rem; /* 14px */
+  --text-md: 1rem;       /* 16px */
+  --text-lg: 1.125rem;   /* 18px */
+  --text-xl: 1.25rem;    /* 20px */
+
+  /* Structural Radii by Role */
+  --radius-tape: 2px;
+  --radius-control: 4px;
+  --radius-panel: 4px;
+  --radius-state: 50%;
+
+  /* Ruled Borders */
+  --border-rule: 1px solid var(--ink-border);
+  --border-rule-strong: 1.5px solid var(--ink-slate);
+
+  /* Hatch Patterns for Non-Color Redundant Encodings */
+  --hatch-risk: repeating-linear-gradient(45deg, #fee2e2, #fee2e2 5px, #fecaca 5px, #fecaca 10px);
+
+  /* Action Transitions (Strictly Functional) */
+  --transition-action: 140ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

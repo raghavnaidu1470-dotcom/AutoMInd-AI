@@ -71,7 +71,7 @@ All generated automata are rendered through an interactive, visual state-transit
 └────────────────────────────────────────────────────────┘
 ```
 
-For complete technical specifications, see [`docs/architecture.md`](docs/architecture.md) and [`docs/automata_engine.md`](docs/automata_engine.md).
+For complete technical specifications, see [`docs/architecture.md`](docs/architecture.md), [`docs/automata_engine.md`](docs/automata_engine.md), the UI & UX specification [`docs/DESIGN.md`](docs/DESIGN.md), and the manual verification checklist [`docs/UI_QA_CHECKLIST.md`](docs/UI_QA_CHECKLIST.md).
 
 ---
 
@@ -181,8 +181,11 @@ python -c "from backend.redos_guard.gnn.trainer import train_redos_gnn, run_fair
 
 ### 5. Running Tests
 ```bash
-# Run backend unit, API, and correctness tests (152 passing tests)
+# Run backend unit, API, and correctness tests (156 passing tests)
 backend/venv/bin/pytest tests/
+
+# Run frontend unit tests (pure utilities: edge merging, URL state, layout, validator)
+npm --prefix frontend test
 
 # Verify frontend production build
 npm --prefix frontend run build
