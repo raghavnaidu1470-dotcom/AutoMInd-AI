@@ -1,32 +1,46 @@
 import React from 'react';
 
-export default function XAIExplanationPanel({ xaiExplanation, loading, isLiveMode }) {
+const FEATURE_NAME_MAP = {
+  is_cyclic: 'Cyclic paths detected',
+  has_cycle: 'Cyclic path present',
+  avg_branching_factor: 'Average branching factor',
+  branching_factor: 'Branching factor',
+  is_deterministic: 'Deterministic structure',
+  start_to_accept_path_len: 'Distance from start to accepting state',
+  path_len: 'Path traversal length',
+  max_out_degree: 'Maximum outgoing transitions per state',
+  num_states: 'Total state count',
+  num_transitions: 'Total transition count',
+  num_accepting_states: 'Accepting state count',
+  density: 'Transition density',
+  alphabet_size: 'Alphabet cardinality',
+};
+
+function formatFeatureName(rawName) {
+  if (FEATURE_NAME_MAP[rawName]) return FEATURE_NAME_MAP[rawName];
+  return rawName
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+export default function XAIExplanationPanel({
+  xaiExplanation,
+  loading,
+  showEdgeImportance,
+  setShowEdgeImportance,
+}) {
   if (loading) {
     return (
-      <div className="glass-panel xai-panel" style={{ alignItems: 'center', justifyContent: 'center', minHeight: '360px' }}>
-        <div style={{ textAlign: 'center' }}>
-          <div
-            style={{
-              width: '36px',
-              height: '36px',
-              border: '3px solid rgba(6, 182, 212, 0.2)',
-              borderTopColor: 'var(--accent-cyan)',
-              borderRadius: '50%',
-              animation: 'spin 0.8s linear infinite',
-              margin: '0 auto 1rem',
-            }}
-          />
-          <p style={{ color: 'var(--text-primary)', fontWeight: '600' }}>Computing GNN & SHAP Attributions...</p>
-          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Evaluating graph message passing & edge masks</span>
-        </div>
+      <div style={{ padding: '0.85rem', fontSize: 'var(--text-xs)', color: 'var(--ink-secondary)' }}>
+        Computing GNN message passing and SHAP feature attributions...
       </div>
     );
   }
 
   if (!xaiExplanation) {
     return (
-      <div className="glass-panel xai-panel">
-        <p style={{ color: 'var(--text-muted)' }}>Run a string execution to view explainability analytics.</p>
+      <div style={{ padding: '0.85rem', fontSize: 'var(--text-xs)', color: 'var(--ink-secondary)' }}>
+        Run a candidate string to inspect model explanation analytics.
       </div>
     );
   }
@@ -36,142 +50,121 @@ export default function XAIExplanationPanel({ xaiExplanation, loading, isLiveMod
     confidence = 0.0,
     edge_importance = [],
     feature_attributions = {},
-    critical_subgraph,
     explanation_summary,
   } = xaiExplanation;
 
+  // Most influential transitions (top 4)
   const topEdges = edge_importance.slice(0, 4);
 
+  // Plain lead sentence
+  const leadSentence = explanation_summary || 
+    `The GNN model predicts that the automaton will ${predicted_accepted ? 'accept' : 'reject'} the candidate string with ${(confidence * 100).toFixed(1)}% confidence.`;
+
   return (
-    <div className="glass-panel xai-panel" id="xai-explanation-panel">
-      {/* Header with Title & Badges */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem' }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <h2 style={{ fontSize: '1.1rem', fontWeight: '700' }}>Explainable AI Analytics</h2>
-            <span
-              style={{
-                fontSize: '0.7rem',
-                fontFamily: 'var(--font-mono)',
-                padding: '0.15rem 0.5rem',
-                borderRadius: '4px',
-                background: isLiveMode ? 'rgba(16, 185, 129, 0.15)' : 'rgba(255, 255, 255, 0.05)',
-                color: isLiveMode ? '#34d399' : 'var(--text-muted)',
-                border: `1px solid ${isLiveMode ? 'rgba(16, 185, 129, 0.3)' : 'var(--border-subtle)'}`,
-              }}
-            >
-              {isLiveMode ? '⚡ automata_gnn.pt' : 'Fixture Fallback'}
-            </span>
-          </div>
-          <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-            GNNExplainer Subgraphs + SHAP Feature Attribution
-          </span>
-        </div>
-        <span
-          className="badge"
-          style={{
-            background: predicted_accepted ? 'rgba(16, 185, 129, 0.15)' : 'rgba(244, 63, 94, 0.15)',
-            color: predicted_accepted ? '#34d399' : '#fda4af',
-            border: `1px solid ${predicted_accepted ? 'rgba(16, 185, 129, 0.3)' : 'rgba(244, 63, 94, 0.3)'}`,
-          }}
-        >
-          {predicted_accepted ? 'GNN: ACCEPTED' : 'GNN: REJECTED'}
-        </span>
-      </div>
-
-      {/* Metrics Row */}
-      <div className="metric-row">
-        <div className="metric-box">
-          <div className="metric-label">Model Confidence</div>
-          <div className="metric-val" style={{ color: 'var(--accent-cyan)' }}>
-            {(confidence * 100).toFixed(1)}%
-          </div>
-          <div className="bar-track">
-            <div className="bar-fill bar-fill-cyan" style={{ width: `${Math.min(confidence * 100, 100)}%` }} />
-          </div>
-        </div>
-
-        <div className="metric-box">
-          <div className="metric-label">Critical Subgraph</div>
-          <div className="metric-val" style={{ color: 'var(--accent-violet)' }}>
-            {critical_subgraph?.nodes?.length || 0} states
-          </div>
-          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.35rem' }}>
-            {critical_subgraph?.edges?.length || 0} critical transitions
-          </div>
-        </div>
-      </div>
-
-      {/* Natural Language Rationale Card */}
-      <div
-        className="glass-card"
-        style={{ padding: '0.85rem 1rem', borderLeft: '3px solid var(--accent-cyan)' }}
-      >
-        <div style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--accent-cyan)', marginBottom: '0.25rem' }}>
-          Decision Summary
-        </div>
-        <p style={{ fontSize: '0.85rem', lineHeight: '1.4', color: 'var(--text-secondary)' }}>
-          {explanation_summary}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+      {/* Plain Lead Sentence Callout */}
+      <div className="engineering-callout">
+        <div className="engineering-callout-title">Decision summary</div>
+        <p style={{ margin: 0, color: 'var(--ink-slate)', lineHeight: 1.45 }}>
+          {leadSentence}
         </p>
       </div>
 
-      {/* Top Edge Importance (GNNExplainer) */}
+      {/* Model Confidence & Edge Weight Toggle */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <span style={{ fontSize: 'var(--text-xs)', color: 'var(--ink-secondary)' }}>Model confidence: </span>
+          <strong style={{ fontFamily: 'var(--font-mono)' }}>{(confidence * 100).toFixed(1)}%</strong>
+        </div>
+
+        {setShowEdgeImportance && (
+          <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: 'var(--text-xs)', cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={Boolean(showEdgeImportance)}
+              onChange={(e) => setShowEdgeImportance(e.target.checked)}
+            />
+            Show edge weight on diagram
+          </label>
+        )}
+      </div>
+
+      {/* Most Influential Transitions */}
       <div>
-        <h3 style={{ fontSize: '0.85rem', fontWeight: '600', marginBottom: '0.5rem', color: 'var(--text-primary)' }}>
-          Key Transition Paths (GNNExplainer)
-        </h3>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-          {topEdges.map((e, idx) => (
-            <div
-              key={idx}
-              className="glass-card"
-              style={{ padding: '0.6rem 0.85rem', display: 'flex', flexDirection: 'column', gap: '0.3rem' }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', fontFamily: 'var(--font-mono)' }}>
+        <h4 style={{ fontSize: 'var(--text-xs)', textTransform: 'uppercase', color: 'var(--ink-secondary)', marginBottom: '0.35rem' }}>
+          Influential Transitions
+        </h4>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+          {topEdges.length === 0 ? (
+            <span style={{ fontSize: 'var(--text-xs)', color: 'var(--ink-secondary)' }}>
+              No critical edge weights recorded.
+            </span>
+          ) : (
+            topEdges.map((e, idx) => (
+              <div
+                key={idx}
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  padding: '0.25rem 0.4rem',
+                  background: 'var(--paper-subtle)',
+                  border: '1px solid var(--ink-border-light)',
+                  borderRadius: '2px',
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: 'var(--text-xs)',
+                }}
+              >
                 <span>
-                  <strong style={{ color: '#fff' }}>{e.from_state}</strong>
-                  <span style={{ color: 'var(--accent-cyan)' }}> --({e.symbol})--&gt; </span>
-                  <strong style={{ color: '#fff' }}>{e.to_state}</strong>
+                  {e.from_state} --({e.symbol})--&gt; {e.to_state}
                 </span>
-                <span style={{ color: e.importance > 0.8 ? '#fda4af' : 'var(--text-secondary)' }}>
-                  {(e.importance * 100).toFixed(0)}% imp.
+                <strong>{(e.importance * 100).toFixed(0)}%</strong>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+
+      {/* Feature-Level Attributions with Readable Names */}
+      <div>
+        <h4 style={{ fontSize: 'var(--text-xs)', textTransform: 'uppercase', color: 'var(--ink-secondary)', marginBottom: '0.35rem' }}>
+          Structural Feature Attributions
+        </h4>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+          {Object.entries(feature_attributions).map(([feat, score]) => (
+            <div key={feat} style={{ fontSize: 'var(--text-xs)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.15rem' }}>
+                <span style={{ color: 'var(--ink-slate)' }}>{formatFeatureName(feat)}</span>
+                <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
+                  {(score * 100).toFixed(1)}%
                 </span>
               </div>
-              <div className="bar-track">
+              <div style={{ height: '4px', background: 'var(--ink-border-light)', borderRadius: '2px', overflow: 'hidden' }}>
                 <div
-                  className="bar-fill"
                   style={{
-                    width: `${Math.min(e.importance * 100, 100)}%`,
-                    background: e.importance > 0.8 ? 'linear-gradient(90deg, #f43f5e, #fb7185)' : 'linear-gradient(90deg, #0284c7, var(--accent-cyan))',
+                    height: '100%',
+                    width: `${Math.min(score * 200, 100)}%`,
+                    backgroundColor: 'var(--ink-slate)',
                   }}
                 />
               </div>
             </div>
           ))}
-          {topEdges.length === 0 && (
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>No edge attributions available.</span>
-          )}
         </div>
       </div>
 
-      {/* SHAP Feature-Level Attributions */}
-      <div>
-        <h3 style={{ fontSize: '0.85rem', fontWeight: '600', marginBottom: '0.5rem', color: 'var(--text-primary)' }}>
-          Feature Attributions (SHAP)
-        </h3>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-          {Object.entries(feature_attributions).map(([feat, score]) => (
-            <div key={feat} style={{ fontSize: '0.78rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-secondary)' }}>
-                <span style={{ textTransform: 'capitalize' }}>{feat.replace(/_/g, ' ')}</span>
-                <span style={{ fontFamily: 'var(--font-mono)' }}>{(score * 100).toFixed(1)}%</span>
-              </div>
-              <div className="bar-track">
-                <div className="bar-fill bar-fill-violet" style={{ width: `${Math.min(score * 200, 100)}%` }} />
-              </div>
-            </div>
-          ))}
-        </div>
+      {/* Honest Academic / Experimental Disclaimer */}
+      <div
+        style={{
+          padding: '0.5rem 0.6rem',
+          background: 'var(--paper-subtle)',
+          borderTop: '1px solid var(--ink-border)',
+          fontSize: '11px',
+          color: 'var(--ink-secondary)',
+          lineHeight: 1.4,
+        }}
+      >
+        <strong>Experimental note:</strong> Graph message passing and SHAP feature attributions provide statistical heuristics.
+        The formal automata simulator—not the neural model—always decides whether a string is accepted or rejected.
       </div>
     </div>
   );
