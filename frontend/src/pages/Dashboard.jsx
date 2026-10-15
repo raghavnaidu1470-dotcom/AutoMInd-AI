@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Header from '../components/Header.jsx';
 import RegexInput from '../components/RegexInput.jsx';
+import RegexExplainer from '../components/RegexExplainer.jsx';
 import StageRail from '../components/StageRail.jsx';
 import AutomataViewer from '../components/AutomataViewer.jsx';
 import ExecutionStepper from '../components/ExecutionStepper.jsx';
 import MarginColumn from '../components/MarginColumn.jsx';
 import ReDoSGuardPanel from '../components/ReDoSGuardPanel.jsx';
+import WalkMeThroughModal from '../components/WalkMeThroughModal.jsx';
 import { api } from '../services/api.js';
 import {
   decodeStateFromQuery,
@@ -18,6 +20,7 @@ import {
   MOCK_SIMULATION_RESULT,
   MOCK_XAI_EXPLANATION,
 } from '../mock/mockData.js';
+import { generateAutomataExamples } from '../utils/exampleGenerator.js';
 
 export default function Dashboard() {
   // Read initial state from URL query parameters (or sensible defaults)
@@ -27,8 +30,8 @@ export default function Dashboard() {
 
   const [regex, setRegex] = useState(initialUrlState.regex);
   const [inputString, setInputString] = useState(initialUrlState.inputString);
-  const [activeStage, setActiveStage] = useState(initialUrlState.stage);
-  const [currentStepIndex, setCurrentStepIndex] = useState(initialUrlState.step);
+  const [activeStage, setActiveStage] = useState(initialUrlState.stage || 'minimized_dfa');
+  const [currentStepIndex, setCurrentStepIndex] = useState(initialUrlState.step || 0);
 
   const [backendStatus, setBackendStatus] = useState(null);
   const [automataBundle, setAutomataBundle] = useState(MOCK_AUTOMATA_BUNDLE);
@@ -43,8 +46,36 @@ export default function Dashboard() {
   const [showEdgeImportance, setShowEdgeImportance] = useState(false);
   const [recentRegexes, setRecentRegexes] = useState([]);
   const [marginVisible, setMarginVisible] = useState(true);
+  const [railVisible, setRailVisible] = useState(true);
+  const [isAdvancedMode, setIsAdvancedMode] = useState(false);
+  const [walkthroughOpen, setWalkthroughOpen] = useState(false);
+
+  const [generatedExamples, setGeneratedExamples] = useState(() => {
+    try {
+      return generateAutomataExamples(
+        MOCK_AUTOMATA_BUNDLE.minimized_dfa || MOCK_AUTOMATA_BUNDLE.dfa,
+        initialUrlState.regex || '(a|b)*abb'
+      );
+    } catch {
+      return null;
+    }
+  });
 
   const abortControllerRef = useRef(null);
+  const pipelineSeqRef = useRef(0);
+
+  // Keyboard shortcut to toggle right sidebar (Alt+S)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.altKey || e.metaKey) && (e.key === 's' || e.key === 'S')) {
+        if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) return;
+        e.preventDefault();
+        setMarginVisible((v) => !v);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Sync state to URL and recent history
   useEffect(() => {
@@ -67,11 +98,45 @@ export default function Dashboard() {
       const res = await api.checkHealth();
       setBackendStatus(res);
       return res.isLive;
-    } catch (err) {
+    } catch {
       setBackendStatus({ status: 'offline', isLive: false });
       return false;
     }
   }, []);
+
+  // Current active automaton model
+  const currentAutomaton =
+    activeStage === 'nfa'
+      ? automataBundle?.nfa
+      : activeStage === 'dfa'
+      ? automataBundle?.dfa
+      : automataBundle?.minimized_dfa || automataBundle?.dfa || automataBundle?.nfa;
+
+  // Strict Synchronization: Re-simulate whenever currentAutomaton or inputString changes
+  useEffect(() => {
+    if (
+      currentAutomaton &&
+      inputString !== undefined &&
+      inputString !== null &&
+      activeStage !== 'redos'
+    ) {
+      if (simulationResult?.automaton_id !== currentAutomaton.id || simulationResult?.input_string !== inputString) {
+        api.runSimulation(currentAutomaton, inputString)
+          .then((sim) => {
+            setSimulationResult(sim);
+            setCurrentStepIndex(0);
+            api.getExplanation(currentAutomaton, sim, inputString)
+              .then((xai) => setXaiExplanation(xai))
+              .catch(() => {});
+          })
+          .catch((err) => {
+            if (err.name !== 'AbortError') {
+              console.warn('Sync simulation update error:', err);
+            }
+          });
+      }
+    }
+  }, [currentAutomaton?.id, inputString, activeStage]);
 
   // Main pipeline execution
   const runPipeline = useCallback(
@@ -81,15 +146,16 @@ export default function Dashboard() {
         return;
       }
 
-      // Save to recent history
       saveRecentRegex(targetRegex);
       setRecentRegexes(getRecentRegexes());
 
-      // Cancel previous in-flight request if any
+      const currentSeq = ++pipelineSeqRef.current;
+
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
       abortControllerRef.current = new AbortController();
+      const signal = abortControllerRef.current.signal;
 
       setLoading(true);
       setErrorMessage(null);
@@ -97,8 +163,22 @@ export default function Dashboard() {
 
       try {
         // 1. Parse regex to fetch NFA, DFA, and Minimized DFA
-        const bundle = await api.parseRegex(targetRegex);
+        const bundle = await api.parseRegex(targetRegex, { signal });
+        if (currentSeq !== pipelineSeqRef.current) return;
         setAutomataBundle(bundle);
+
+        // Generate verified candidate test inputs
+        try {
+          const gen = generateAutomataExamples(
+            bundle.minimized_dfa || bundle.dfa || bundle.nfa,
+            targetRegex
+          );
+          if (currentSeq === pipelineSeqRef.current) {
+            setGeneratedExamples(gen);
+          }
+        } catch (genErr) {
+          console.warn('Failed to generate automata examples:', genErr);
+        }
 
         // Select automaton to simulate based on current stage
         const targetAutoKey =
@@ -110,31 +190,43 @@ export default function Dashboard() {
         }
 
         // 2. Run candidate string simulation
-        const sim = await api.runSimulation(targetAutomaton, targetString);
+        const sim = await api.runSimulation(targetAutomaton, targetString, { signal });
+        if (currentSeq !== pipelineSeqRef.current) return;
         setSimulationResult(sim);
         setCurrentStepIndex(0);
 
         // 3. ReDoS screening
-        api.analyzeReDoS(targetRegex, false)
-          .then((rd) => setRedosAnalysis(rd))
+        api.analyzeReDoS(targetRegex, false, { signal })
+          .then((rd) => {
+            if (currentSeq === pipelineSeqRef.current) setRedosAnalysis(rd);
+          })
           .catch(() => {});
 
         // 4. Fetch XAI explanation
         setLoadingExplanation(true);
-        api.getExplanation(targetAutomaton, sim, targetString)
-          .then((xai) => setXaiExplanation(xai))
-          .catch((xaiErr) => console.warn('XAI explanation error:', xaiErr))
-          .finally(() => setLoadingExplanation(false));
+        api.getExplanation(targetAutomaton, sim, targetString, { signal })
+          .then((xai) => {
+            if (currentSeq === pipelineSeqRef.current) setXaiExplanation(xai);
+          })
+          .catch((xaiErr) => {
+            if (xaiErr.name !== 'AbortError') console.warn('XAI explanation error:', xaiErr);
+          })
+          .finally(() => {
+            if (currentSeq === pipelineSeqRef.current) setLoadingExplanation(false);
+          });
       } catch (err) {
-        if (err.name === 'AbortError') return;
+        if (err.name === 'AbortError' || currentSeq !== pipelineSeqRef.current) return;
 
         if (err.isSyntaxError) {
           setSyntaxError(err.message);
+          setGeneratedExamples(null);
         } else {
           setErrorMessage(err.message);
         }
       } finally {
-        setLoading(false);
+        if (currentSeq === pipelineSeqRef.current) {
+          setLoading(false);
+        }
       }
     },
     [regex, inputString, activeStage]
@@ -142,7 +234,7 @@ export default function Dashboard() {
 
   // Initial load
   useEffect(() => {
-    checkHealth().then((isLive) => {
+    checkHealth().then(() => {
       runPipeline();
     });
   }, []);
@@ -159,30 +251,26 @@ export default function Dashboard() {
   const handleSelectStage = (newStage) => {
     setActiveStage(newStage);
 
-    // If switching between NFA, DFA, or Minimized DFA, re-simulate for that automaton
     if (newStage === 'nfa' || newStage === 'dfa' || newStage === 'minimized_dfa') {
       const targetAuto = automataBundle?.[newStage];
-      if (targetAuto && inputString) {
+      if (targetAuto && inputString !== undefined && inputString !== null) {
         api.runSimulation(targetAuto, inputString)
           .then((sim) => {
             setSimulationResult(sim);
             setCurrentStepIndex(0);
+            api.getExplanation(targetAuto, sim, inputString)
+              .then((xai) => setXaiExplanation(xai))
+              .catch(() => {});
           })
           .catch((err) => console.warn('Simulation error on stage change:', err));
       }
     }
   };
 
-  // Select active automaton depending on stage
-  const currentAutomaton =
-    activeStage === 'nfa'
-      ? automataBundle?.nfa
-      : activeStage === 'dfa'
-      ? automataBundle?.dfa
-      : automataBundle?.minimized_dfa || automataBundle?.dfa || automataBundle?.nfa;
-
+  // Active step and active state set calculations
   const currentStep = simulationResult?.steps?.[currentStepIndex];
-  const activeStateId = currentStep?.current_states?.[0] || currentAutomaton?.start_state;
+  const activeStates = currentStep?.current_states || (currentAutomaton?.start_state ? [currentAutomaton.start_state] : []);
+  const activeStateId = activeStates[0] || currentAutomaton?.start_state;
   const activeTransition = currentStep?.transition_taken;
 
   return (
@@ -201,7 +289,24 @@ export default function Dashboard() {
         syntaxError={syntaxError}
         clearSyntaxError={() => setSyntaxError(null)}
         recentRegexes={recentRegexes}
+        generatedExamples={generatedExamples}
+        onSelectGeneratedExample={(str) => {
+          setInputString(str);
+          runPipeline(regex, str);
+        }}
+        isExamplesStale={loading || (generatedExamples && generatedExamples.sourceRegex !== regex)}
+        onGenerateMore={() => {
+          if (currentAutomaton) {
+            const more = generateAutomataExamples(currentAutomaton, regex, 15);
+            setGeneratedExamples(more);
+          }
+        }}
       />
+
+      {/* Interactive Plain-English & Token Explainer (Requirement 2) */}
+      {!syntaxError && activeStage !== 'redos' && (
+        <RegexExplainer regex={regex} />
+      )}
 
       {/* Long operation & Cancel bar */}
       {loading && (
@@ -252,17 +357,37 @@ export default function Dashboard() {
 
       {/* Workspace: Stage Rail (Left), Drawing Area / ReDoS (Center), Margin (Right) */}
       <div className="workspace-layout">
-        {/* Stage Rail */}
-        <StageRail
-          activeStage={activeStage}
-          setActiveStage={handleSelectStage}
-          nfaStateCount={automataBundle?.nfa?.states?.length}
-          dfaStateCount={automataBundle?.dfa?.states?.length}
-          minDfaStateCount={automataBundle?.minimized_dfa?.states?.length}
-          simulationResult={simulationResult}
-          redosRisk={redosAnalysis?.risk_class}
-          syntaxError={syntaxError}
-        />
+        {/* Persistent Reopen Navigation Rail Button */}
+        {!railVisible && (
+          <button
+            type="button"
+            id="btn-persistent-open-rail"
+            className="persistent-open-rail-btn"
+            onClick={() => setRailVisible(true)}
+            aria-label="Open learning flow navigation"
+            title="Open learning flow navigation sidebar"
+          >
+            ▶ Navigation
+          </button>
+        )}
+
+        {/* Stage Rail Navigation */}
+        {railVisible && (
+          <StageRail
+            activeStage={activeStage}
+            setActiveStage={handleSelectStage}
+            nfaStateCount={automataBundle?.nfa?.states?.length}
+            dfaStateCount={automataBundle?.dfa?.states?.length}
+            minDfaStateCount={automataBundle?.minimized_dfa?.states?.length}
+            simulationResult={simulationResult}
+            redosRisk={redosAnalysis?.risk_class}
+            syntaxError={syntaxError}
+            isAdvancedMode={isAdvancedMode}
+            setIsAdvancedMode={setIsAdvancedMode}
+            onOpenWalkthrough={() => setWalkthroughOpen(true)}
+            onCloseRail={() => setRailVisible(false)}
+          />
+        )}
 
         {/* Center Canvas / ReDoS View */}
         {activeStage === 'redos' ? (
@@ -280,11 +405,16 @@ export default function Dashboard() {
           <AutomataViewer
             automaton={currentAutomaton}
             activeStage={activeStage}
+            setActiveStage={handleSelectStage}
+            automataBundle={automataBundle}
             activeStateId={activeStateId}
+            activeStates={activeStates}
             activeTransition={activeTransition}
             xaiExplanation={xaiExplanation}
             showEdgeImportance={showEdgeImportance}
             setShowEdgeImportance={setShowEdgeImportance}
+            sidebarVisible={marginVisible}
+            onToggleSidebar={() => setMarginVisible((prev) => !prev)}
           />
         )}
 
@@ -299,6 +429,7 @@ export default function Dashboard() {
             showEdgeImportance={showEdgeImportance}
             setShowEdgeImportance={setShowEdgeImportance}
             onClose={() => setMarginVisible(false)}
+            isAdvancedMode={isAdvancedMode}
           />
         )}
       </div>
@@ -311,8 +442,15 @@ export default function Dashboard() {
           currentStepIndex={currentStepIndex}
           setCurrentStepIndex={setCurrentStepIndex}
           isNfa={activeStage === 'nfa'}
+          automatonType={currentAutomaton?.type || 'DFA'}
         />
       )}
+
+      {/* Beginner Walkthrough Modal */}
+      <WalkMeThroughModal
+        isOpen={walkthroughOpen}
+        onClose={() => setWalkthroughOpen(false)}
+      />
     </div>
   );
 }

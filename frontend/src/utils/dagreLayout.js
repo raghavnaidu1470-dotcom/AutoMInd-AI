@@ -59,6 +59,8 @@ export function buildAutomatonLayout(automaton, { nodeRadius = 22, simplified = 
       const v = coords[edge.to_state];
       return {
         ...edge,
+        from: edge.from_state,
+        to: edge.to_state,
         points: u && v ? [u, v] : [],
         isSelfLoop: edge.from_state === edge.to_state,
       };
@@ -135,6 +137,8 @@ export function buildAutomatonLayout(automaton, { nodeRadius = 22, simplified = 
 
     return {
       ...edge,
+      from: edge.from_state,
+      to: edge.to_state,
       points,
       isSelfLoop: edge.from_state === edge.to_state,
     };

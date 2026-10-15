@@ -1,0 +1,860 @@
+{
+  "summary": {
+    "totalChecks": 52,
+    "passed": 52,
+    "failed": 0,
+    "skipped": 0,
+    "passRate": "100.00%",
+    "totalDurationMs": 51473,
+    "totalDurationSec": "51.47",
+    "completedAt": "2026-10-15T06:32:55.955Z"
+  },
+  "artifacts": [
+    {
+      "type": "svg",
+      "filename": "simple_automaton.svg",
+      "filePath": "/Users/raghavnaidu/AutoMind-AI/demo/artifacts/downloads/simple_automaton.svg",
+      "details": {
+        "valid": true,
+        "sizeBytes": 7158,
+        "viewBox": "-50 -86 781 516",
+        "dimensions": {
+          "width": 781,
+          "height": 516
+        },
+        "stateCircleCount": 5,
+        "edgeCount": 8,
+        "hasPaperBg": true,
+        "hasEmbeddedStyles": true
+      },
+      "timestamp": "2026-10-15T06:32:23.956Z"
+    },
+    {
+      "type": "png",
+      "filename": "simple_automaton.png",
+      "filePath": "/Users/raghavnaidu/AutoMind-AI/demo/artifacts/downloads/simple_automaton.png",
+      "details": {
+        "valid": true,
+        "sizeBytes": 202271,
+        "pixelDimensions": {
+          "width": 2343,
+          "height": 1548
+        },
+        "bitDepth": 8,
+        "colorType": 6,
+        "isHighDpi": true
+      },
+      "timestamp": "2026-10-15T06:32:24.040Z"
+    },
+    {
+      "type": "json",
+      "filename": "simple_automaton.json",
+      "filePath": "/Users/raghavnaidu/AutoMind-AI/demo/artifacts/downloads/simple_automaton.json",
+      "details": {
+        "valid": true,
+        "type": "MINIMIZED_DFA",
+        "stateCount": 4,
+        "transitionCount": 8,
+        "alphabet": [
+          "a",
+          "b"
+        ],
+        "startState": "q0"
+      },
+      "timestamp": "2026-10-15T06:32:24.073Z"
+    },
+    {
+      "type": "svg",
+      "filename": "large_binary_automaton.svg",
+      "filePath": "/Users/raghavnaidu/AutoMind-AI/demo/artifacts/downloads/large_binary_automaton.svg",
+      "details": {
+        "valid": true,
+        "sizeBytes": 8364,
+        "viewBox": "-50 -86 910 569",
+        "dimensions": {
+          "width": 910,
+          "height": 569
+        },
+        "stateCircleCount": 7,
+        "edgeCount": 10,
+        "hasPaperBg": true,
+        "hasEmbeddedStyles": true
+      },
+      "timestamp": "2026-10-15T06:32:25.192Z"
+    },
+    {
+      "type": "png",
+      "filename": "large_binary_automaton.png",
+      "filePath": "/Users/raghavnaidu/AutoMind-AI/demo/artifacts/downloads/large_binary_automaton.png",
+      "details": {
+        "valid": true,
+        "sizeBytes": 272094,
+        "pixelDimensions": {
+          "width": 2730,
+          "height": 1707
+        },
+        "bitDepth": 8,
+        "colorType": 6,
+        "isHighDpi": true
+      },
+      "timestamp": "2026-10-15T06:32:25.192Z"
+    },
+    {
+      "type": "json",
+      "filename": "large_binary_automaton.json",
+      "filePath": "/Users/raghavnaidu/AutoMind-AI/demo/artifacts/downloads/large_binary_automaton.json",
+      "details": {
+        "valid": true,
+        "type": "MINIMIZED_DFA",
+        "stateCount": 6,
+        "transitionCount": 12,
+        "alphabet": [
+          "0",
+          "1"
+        ],
+        "startState": "q0"
+      },
+      "timestamp": "2026-10-15T06:32:25.192Z"
+    }
+  ],
+  "screenshots": [
+    {
+      "step": "1.3",
+      "title": "Default Example & Automaton State Count",
+      "screenshot": "/Users/raghavnaidu/AutoMind-AI/demo/artifacts/01_initial_workspace.png"
+    },
+    {
+      "step": "2.2",
+      "title": "Pedagogical Concepts & Escape Dismissal",
+      "screenshot": "/Users/raghavnaidu/AutoMind-AI/demo/artifacts/02_walkthrough_modal.png"
+    },
+    {
+      "step": "3.3",
+      "title": "Interactive Parsed AST Tokens",
+      "screenshot": "/Users/raghavnaidu/AutoMind-AI/demo/artifacts/03_explainer_and_tokens.png"
+    },
+    {
+      "step": "4.4",
+      "title": "Presets Dropdown & History Recall",
+      "screenshot": "/Users/raghavnaidu/AutoMind-AI/demo/artifacts/04_candidates_and_presets.png"
+    },
+    {
+      "step": "5.5",
+      "title": "Transition Table View Toggle",
+      "screenshot": "/Users/raghavnaidu/AutoMind-AI/demo/artifacts/05_transition_table_view.png"
+    },
+    {
+      "step": "6.2",
+      "title": "Canvas Pan Interaction",
+      "screenshot": "/Users/raghavnaidu/AutoMind-AI/demo/artifacts/06_canvas_interactions.png"
+    },
+    {
+      "step": "7.5",
+      "title": "Rejection Modes & NFA Branching Sets",
+      "screenshot": "/Users/raghavnaidu/AutoMind-AI/demo/artifacts/07_tape_playback_and_trace.png"
+    },
+    {
+      "step": "8.3",
+      "title": "Exponential ReDoS Diagnosis & Verified Repair",
+      "screenshot": "/Users/raghavnaidu/AutoMind-AI/demo/artifacts/08_redos_analysis.png"
+    },
+    {
+      "step": "8.4",
+      "title": "Educational Presets & Bounded Worker Termination",
+      "screenshot": "/Users/raghavnaidu/AutoMind-AI/demo/artifacts/08_redos_presets_bounded.png"
+    },
+    {
+      "step": "9.4",
+      "title": "Mobile Responsive Adaptation (<800px)",
+      "screenshot": "/Users/raghavnaidu/AutoMind-AI/demo/artifacts/09_mobile_viewport.png"
+    },
+    {
+      "step": "10.4",
+      "title": "Visual Verification of Downloaded SVG/PNG",
+      "screenshot": "/Users/raghavnaidu/AutoMind-AI/demo/artifacts/10_rendered_downloaded_svg.png"
+    },
+    {
+      "step": "11.5",
+      "title": "Long Inputs & Disjoint Alphabet Handling",
+      "screenshot": "/Users/raghavnaidu/AutoMind-AI/demo/artifacts/11_robustness_completed.png"
+    }
+  ],
+  "checks": [
+    {
+      "chapter": "CHAPTER 1 · INITIAL WORKSPACE",
+      "step": "1.1",
+      "title": "Page Title & UI Shell",
+      "action": "Navigate to http://127.0.0.1:5173 and inspect core chrome",
+      "expected": "Title is 'AutoMind AI', top command bar, stage rail, canvas, and tape are mounted",
+      "observed": "Title: 'AutoMind AI', all 5 primary regions detected",
+      "status": "PASS",
+      "error": null,
+      "durationMs": 0,
+      "screenshot": null,
+      "timestamp": "2026-10-15T06:32:05.093Z"
+    },
+    {
+      "chapter": "CHAPTER 1 · INITIAL WORKSPACE",
+      "step": "1.2",
+      "title": "Backend Health Connection",
+      "action": "Inspect status dot and engine health badge in app header",
+      "expected": "Engine status displays 'Engine: connected' with live status indicator",
+      "observed": "Engine status: 'Engine: connected', green online dot active",
+      "status": "PASS",
+      "error": null,
+      "durationMs": 0,
+      "screenshot": null,
+      "timestamp": "2026-10-15T06:32:05.098Z"
+    },
+    {
+      "chapter": "CHAPTER 1 · INITIAL WORKSPACE",
+      "step": "1.3",
+      "title": "Default Example & Automaton State Count",
+      "action": "Verify regex input is '(a|b)*abb', candidate is 'ababb', and canvas has >= 4 states",
+      "expected": "Default pattern loaded without user input, rendering minimal 4-state canonical DFA",
+      "observed": "Regex: '(a|b)*abb', String: 'ababb', Rendered states: 4",
+      "status": "PASS",
+      "error": null,
+      "durationMs": 0,
+      "screenshot": "/Users/raghavnaidu/AutoMind-AI/demo/artifacts/01_initial_workspace.png",
+      "timestamp": "2026-10-15T06:32:05.175Z"
+    },
+    {
+      "chapter": "CHAPTER 2 · WALKTHROUGH & SYNTAX",
+      "step": "2.1",
+      "title": "Beginner Walkthrough Modal Launch",
+      "action": "Click #btn-walk-me-through in sidebar",
+      "expected": "Modal dialog opens, focus transfers to modal, step 1 rendered",
+      "observed": "Modal opened with header: '1. What is a Regular Expression?'",
+      "status": "PASS",
+      "error": null,
+      "durationMs": 0,
+      "screenshot": null,
+      "timestamp": "2026-10-15T06:32:05.215Z"
+    },
+    {
+      "chapter": "CHAPTER 2 · WALKTHROUGH & SYNTAX",
+      "step": "2.2",
+      "title": "Pedagogical Concepts & Escape Dismissal",
+      "action": "Traverse 6 walkthrough steps and dismiss via keyboard Escape",
+      "expected": "All 6 theoretical steps render correct educational cards; Escape closes modal cleanly",
+      "observed": "Steps 1-6 verified (NFA, DFA, Minimization, Tape, ReDoS), modal closed with Escape",
+      "status": "PASS",
+      "error": null,
+      "durationMs": 0,
+      "screenshot": "/Users/raghavnaidu/AutoMind-AI/demo/artifacts/02_walkthrough_modal.png",
+      "timestamp": "2026-10-15T06:32:05.527Z"
+    },
+    {
+      "chapter": "CHAPTER 2 · WALKTHROUGH & SYNTAX",
+      "step": "2.3",
+      "title": "Formal Syntax Guide & Unsupported Features",
+      "action": "Open 'Formal Syntax Guide' modal, verify operator rows and unsupported feature warnings",
+      "expected": "Supported table lists concatenation, alternation, star/plus/opt, classes, escapes; notes backreference limits",
+      "observed": "11 syntax rules documented, non-regular construct limits confirmed, modal closed",
+      "status": "PASS",
+      "error": null,
+      "durationMs": 0,
+      "screenshot": null,
+      "timestamp": "2026-10-15T06:32:05.587Z"
+    },
+    {
+      "chapter": "CHAPTER 3 · MODES & EXPLAINER",
+      "step": "3.1",
+      "title": "View Mode Toggle (Beginner / Advanced)",
+      "action": "Toggle between Beginner and Advanced modes in stage rail footer",
+      "expected": "View modes toggle smoothly, updating state and presentation layout",
+      "observed": "Toggled Advanced (aria-pressed=true) and restored Beginner (aria-pressed=true)",
+      "status": "PASS",
+      "error": null,
+      "durationMs": 0,
+      "screenshot": null,
+      "timestamp": "2026-10-15T06:32:05.656Z"
+    },
+    {
+      "chapter": "CHAPTER 3 · MODES & EXPLAINER",
+      "step": "3.2",
+      "title": "Plain-English Regex Narrative",
+      "action": "Read generated narrative from #regex-plain-english-text",
+      "expected": "Translates '(a|b)*abb' into human-readable language ending with 'abb'",
+      "observed": "Narrative: \"Matches any string consisting of 'a' and 'b' that ends with the exact suffix 'abb'.\"",
+      "status": "PASS",
+      "error": null,
+      "durationMs": 0,
+      "screenshot": null,
+      "timestamp": "2026-10-15T06:32:05.657Z"
+    },
+    {
+      "chapter": "CHAPTER 3 · MODES & EXPLAINER",
+      "step": "3.3",
+      "title": "Interactive Parsed AST Tokens",
+      "action": "Hover and click individual parsed token chips across the regex pattern",
+      "expected": "All tokens highlight on hover, click reveals token role and operator precedence",
+      "observed": "9 interactive tokens verified across pattern",
+      "status": "PASS",
+      "error": null,
+      "durationMs": 0,
+      "screenshot": "/Users/raghavnaidu/AutoMind-AI/demo/artifacts/03_explainer_and_tokens.png",
+      "timestamp": "2026-10-15T06:32:05.841Z"
+    },
+    {
+      "chapter": "CHAPTER 4 · CANDIDATES & PRESETS",
+      "step": "4.1",
+      "title": "Candidate String Partitioning & Filters",
+      "action": "Click filter tabs: All, Accepted, Rejected, Edge cases",
+      "expected": "Tabs filter chips by verification verdict without page reloads",
+      "observed": "Verified 7 accepted and 7 rejected candidate inputs",
+      "status": "PASS",
+      "error": null,
+      "durationMs": 0,
+      "screenshot": null,
+      "timestamp": "2026-10-15T06:32:06.005Z"
+    },
+    {
+      "chapter": "CHAPTER 4 · CANDIDATES & PRESETS",
+      "step": "4.2",
+      "title": "One-Click Candidate Execution",
+      "action": "Click candidate chip 'abb'",
+      "expected": "String input updates, pipeline runs automatically, tape updates active cells",
+      "observed": "Candidate 'abb' loaded into input and executed on tape",
+      "status": "PASS",
+      "error": null,
+      "durationMs": 0,
+      "screenshot": null,
+      "timestamp": "2026-10-15T06:32:06.957Z"
+    },
+    {
+      "chapter": "CHAPTER 4 · CANDIDATES & PRESETS",
+      "step": "4.3",
+      "title": "Generate More & Show More Actions",
+      "action": "Test '+ Generate more' and 'Show more' / 'Show fewer' toggles",
+      "expected": "Dynamically synthesizes additional inputs from state transition graph",
+      "observed": "Generate more and Show more/fewer executed without errors",
+      "status": "PASS",
+      "error": null,
+      "durationMs": 0,
+      "screenshot": null,
+      "timestamp": "2026-10-15T06:32:07.656Z"
+    },
+    {
+      "chapter": "CHAPTER 4 · CANDIDATES & PRESETS",
+      "step": "4.4",
+      "title": "Presets Dropdown & History Recall",
+      "action": "Select preset 'a*b+', then restore '(a|b)*abb' via History dropdown",
+      "expected": "Presets auto-load pattern and candidate; history preserves and restores prior patterns",
+      "observed": "Preset loaded a*b+ / aaabbb; history preserved and restored (a|b)*abb",
+      "status": "PASS",
+      "error": null,
+      "durationMs": 0,
+      "screenshot": "/Users/raghavnaidu/AutoMind-AI/demo/artifacts/04_candidates_and_presets.png",
+      "timestamp": "2026-10-15T06:32:08.546Z"
+    },
+    {
+      "chapter": "CHAPTER 5 · AUTOMATA MODELS",
+      "step": "5.1",
+      "title": "Thompson's NFA Representation",
+      "action": "Switch to 'NFA (Thompson)' representation tab",
+      "expected": "AutomataViewer updates layout to display full 11-state Thompson NFA structure",
+      "observed": "NFA active, rendered 14 states with start arrow and epsilon paths",
+      "status": "PASS",
+      "error": null,
+      "durationMs": 0,
+      "screenshot": null,
+      "timestamp": "2026-10-15T06:32:09.851Z"
+    },
+    {
+      "chapter": "CHAPTER 5 · AUTOMATA MODELS",
+      "step": "5.2",
+      "title": "Subset Construction DFA",
+      "action": "Switch to 'DFA (Subset)' tab",
+      "expected": "Transforms multi-state NFA into deterministic DFA over full alphabet",
+      "observed": "DFA active, rendered 5 deterministic states",
+      "status": "PASS",
+      "error": null,
+      "durationMs": 0,
+      "screenshot": null,
+      "timestamp": "2026-10-15T06:32:10.509Z"
+    },
+    {
+      "chapter": "CHAPTER 5 · AUTOMATA MODELS",
+      "step": "5.3",
+      "title": "State Inspection & Subset Mappings",
+      "action": "Hover and click DFA state node to inspect underlying NFA subsets and transitions",
+      "expected": "Inspects underlying NFA subset equivalence and lists outgoing transitions",
+      "observed": "Inspector drawer opened: \"State q0 Start State Non-Accepting ✕ Corresponds to NFA states: {q0, q1, q2, q4, q5, q6, q7, q8} Merged from DFA states: {q0, q2} Outgoing transitions: 'a' → q1, 'b' → q0\"",
+      "status": "PASS",
+      "error": null,
+      "durationMs": 0,
+      "screenshot": null,
+      "timestamp": "2026-10-15T06:32:11.269Z"
+    },
+    {
+      "chapter": "CHAPTER 5 · AUTOMATA MODELS",
+      "step": "5.4",
+      "title": "Minimization Comparison Modal",
+      "action": "Click '⚖️ Compare Minimization' and inspect partitioning breakdown",
+      "expected": "Displays stats cards, reduction verdict, and detailed state partition breakdown table",
+      "observed": "Modal verified with 4 state partition entries; closed via Escape",
+      "status": "PASS",
+      "error": null,
+      "durationMs": 0,
+      "screenshot": null,
+      "timestamp": "2026-10-15T06:32:11.393Z"
+    },
+    {
+      "chapter": "CHAPTER 5 · AUTOMATA MODELS",
+      "step": "5.5",
+      "title": "Transition Table View Toggle",
+      "action": "Toggle 'View table', verify tabular columns (State ID, Type, Subset, Transitions), toggle back",
+      "expected": "Accessible HTML table displays complete transition matrix; switches back to SVG diagram",
+      "observed": "Transition table verified (4 rows for Transition Table for Minimized DFA for (a|b)*abb), restored diagram",
+      "status": "PASS",
+      "error": null,
+      "durationMs": 0,
+      "screenshot": "/Users/raghavnaidu/AutoMind-AI/demo/artifacts/05_transition_table_view.png",
+      "timestamp": "2026-10-15T06:32:11.505Z"
+    },
+    {
+      "chapter": "CHAPTER 6 · CANVAS INTERACTIONS",
+      "step": "6.1",
+      "title": "Canvas Zoom & Fit Controls",
+      "action": "Click Zoom +, Zoom −, and Fit view buttons on canvas toolbar",
+      "expected": "Transform matrix scales up/down and resets to canonical (1.0x, center) on Fit view",
+      "observed": "Zoomed in (width: 100%; height: 100%; transform: translate(0px, 0px) scale(1.44); transform-origin: center center;), zoomed out, and restored fit (width: 100%; height: 100%; transform: translate(0px, 0px) scale(1); transform-origin: center center;)",
+      "status": "PASS",
+      "error": null,
+      "durationMs": 0,
+      "screenshot": null,
+      "timestamp": "2026-10-15T06:32:11.672Z"
+    },
+    {
+      "chapter": "CHAPTER 6 · CANVAS INTERACTIONS",
+      "step": "6.2",
+      "title": "Canvas Pan Interaction",
+      "action": "Drag canvas viewport with mouse and verify translation transform",
+      "expected": "Smooth mouse panning updates SVG coordinate offset; Fit View restores centering",
+      "observed": "Mouse drag translated canvas coordinates; Fit View cleanly recentered",
+      "status": "PASS",
+      "error": null,
+      "durationMs": 0,
+      "screenshot": "/Users/raghavnaidu/AutoMind-AI/demo/artifacts/06_canvas_interactions.png",
+      "timestamp": "2026-10-15T06:32:11.910Z"
+    },
+    {
+      "chapter": "CHAPTER 7 · TAPE & PLAYBACK",
+      "step": "7.1",
+      "title": "Tape Step Traversal & Acceptance Verdict",
+      "action": "Step forward through 'ababb' to completion on Minimized DFA",
+      "expected": "Amber read head consumes each character in order; final verdict indicates Accepted (Reached accepting state)",
+      "observed": "Verdict: \"SIMULATION COMPLETE ✓ Accepted: Reached accepting state {q2} after consuming entire input (5 steps).\"",
+      "status": "PASS",
+      "error": null,
+      "durationMs": 0,
+      "screenshot": null,
+      "timestamp": "2026-10-15T06:32:13.181Z"
+    },
+    {
+      "chapter": "CHAPTER 7 · TAPE & PLAYBACK",
+      "step": "7.2",
+      "title": "Transport Scrubber, Speed & Play Loop",
+      "action": "Reset to 0, scrub to step 3, select 2x speed, click Play until completion",
+      "expected": "Scrubber and speed controls manipulate simulation time seamlessly",
+      "observed": "Reset jumped to 0, scrubbed to 3, 2x speed play loop finished at step 5",
+      "status": "PASS",
+      "error": null,
+      "durationMs": 0,
+      "screenshot": null,
+      "timestamp": "2026-10-15T06:32:14.334Z"
+    },
+    {
+      "chapter": "CHAPTER 7 · TAPE & PLAYBACK",
+      "step": "7.3",
+      "title": "Green-Bar Trace Table Interactive Jumps",
+      "action": "Click row index 2 in alternating green-bar printer paper trace table",
+      "expected": "Tape read head and canvas active state jump synchronously to selected step index",
+      "observed": "Verified 6 trace rows, row 2 jump synced tape to step 2",
+      "status": "PASS",
+      "error": null,
+      "durationMs": 0,
+      "screenshot": null,
+      "timestamp": "2026-10-15T06:32:14.413Z"
+    },
+    {
+      "chapter": "CHAPTER 7 · TAPE & PLAYBACK",
+      "step": "7.4",
+      "title": "XAI (GNN) Explanation & Edge Weights",
+      "action": "Inspect GNN confidence in 'Explanation' tab and toggle edge weight overlay",
+      "expected": "Statistical GNN explanation provides structural features and visual stroke weights",
+      "observed": "XAI panel rendered prediction and structural attributions; edge weight toggled",
+      "status": "PASS",
+      "error": null,
+      "durationMs": 0,
+      "screenshot": null,
+      "timestamp": "2026-10-15T06:32:14.526Z"
+    },
+    {
+      "chapter": "CHAPTER 7 · TAPE & PLAYBACK",
+      "step": "7.5",
+      "title": "Rejection Modes & NFA Branching Sets",
+      "action": "Test 'x' (missing transition rejection), 'ab' (non-accepting state rejection), and NFA ε-closure sets",
+      "expected": "Rejection messages distinguish missing transitions from non-accepting endings; NFA tracks branching state sets",
+      "observed": "Rejections validated ('SIMULATION COMPLETE ✕ Rejected: Stuck at character 'x' with no outgoing transition from {q0}.' and 'SIMULATION COMPLETE ✕ Rejected: Input fully consumed, but final active state {q1} is not an accepting state.'); NFA branching verified",
+      "status": "PASS",
+      "error": null,
+      "durationMs": 0,
+      "screenshot": "/Users/raghavnaidu/AutoMind-AI/demo/artifacts/07_tape_playback_and_trace.png",
+      "timestamp": "2026-10-15T06:32:18.051Z"
+    },
+    {
+      "chapter": "CHAPTER 8 · REDOS STUDIO",
+      "step": "8.1",
+      "title": "ReDoS Studio Navigation",
+      "action": "Click Stage 4 'Investigate ReDoS' on navigation rail",
+      "expected": "Workspace layout renders ReDoS Guard Studio with User Analysis and Educational Presets tabs",
+      "observed": "ReDoS Guard Studio mounted active with tab controls",
+      "status": "PASS",
+      "error": null,
+      "durationMs": 0,
+      "screenshot": null,
+      "timestamp": "2026-10-15T06:32:18.093Z"
+    },
+    {
+      "chapter": "CHAPTER 8 · REDOS STUDIO",
+      "step": "8.2",
+      "title": "Safe Pattern Baseline Screening",
+      "action": "Screen pattern '(a|b)*abb' in User Analysis tab",
+      "expected": "Static analysis proves absence of overlapping cycles; runtime benchmark scales linearly",
+      "observed": "Banner confirmed: \"Static Analysis Finding: Linear / Safe — No ambiguous overlapping cycles detected. Runtime Backtracking Measurement: No severe timing spike observed on tested sample lengths (or evaluates linearly).\"",
+      "status": "PASS",
+      "error": null,
+      "durationMs": 0,
+      "screenshot": null,
+      "timestamp": "2026-10-15T06:32:18.300Z"
+    },
+    {
+      "chapter": "CHAPTER 8 · REDOS STUDIO",
+      "step": "8.3",
+      "title": "Exponential ReDoS Diagnosis & Verified Repair",
+      "action": "Screen '(a+)+$', verify offending span, attack string, chart, and repair proposal",
+      "expected": "Flags exponential ambiguity, isolates span, plots growth chart, proposes equivalent a+$",
+      "observed": "Vulnerability confirmed, repair proposed: \"Suggested Safe Alternative: a+$\nLoad safe alternative into studio ▶\n\nApplied collapse_nested_plus: rewrote '(a+)+$' to 'a+$'. Minimized DFA language equivalence mathematically verified; ambiguity reduced from EXPONENTIAL to LINEAR.\n\nFormal equivalence: Verified identical language\"",
+      "status": "PASS",
+      "error": null,
+      "durationMs": 0,
+      "screenshot": "/Users/raghavnaidu/AutoMind-AI/demo/artifacts/08_redos_analysis.png",
+      "timestamp": "2026-10-15T06:32:21.440Z"
+    },
+    {
+      "chapter": "CHAPTER 8 · REDOS STUDIO",
+      "step": "8.4",
+      "title": "Educational Presets & Bounded Worker Termination",
+      "action": "Test benign matching input and adversarial near-match on '(a|aa)+$' in isolated Web Worker",
+      "expected": "Benign match succeeds rapidly; pathological near-match triggers worker.terminate() at 100ms deadline",
+      "observed": "Worker termination confirmed: \"Adversarial near-match: ⏱️ Interrupted after 100ms (Worker terminated) Isolation: Web Worker (hard timeout exceeded; worker.terminate() invoked) Adversarial backtracking exceeded the 100ms deadline. The background execution thread was terminated via worker.terminate(), ensuring the browser UI remained completely responsive.\"",
+      "status": "PASS",
+      "error": null,
+      "durationMs": 0,
+      "screenshot": "/Users/raghavnaidu/AutoMind-AI/demo/artifacts/08_redos_presets_bounded.png",
+      "timestamp": "2026-10-15T06:32:21.787Z"
+    },
+    {
+      "chapter": "CHAPTER 9 · SIDEBARS & MOBILE",
+      "step": "9.1",
+      "title": "Left Navigation Rail Collapse & Reopen",
+      "action": "Click #btn-close-rail then #btn-persistent-open-rail",
+      "expected": "Sidebar collapses freeing screen real estate; persistent toggle restores sidebar immediately",
+      "observed": "Left rail collapsed and restored cleanly",
+      "status": "PASS",
+      "error": null,
+      "durationMs": 0,
+      "screenshot": null,
+      "timestamp": "2026-10-15T06:32:22.507Z"
+    },
+    {
+      "chapter": "CHAPTER 9 · SIDEBARS & MOBILE",
+      "step": "9.2",
+      "title": "Right Margin Column Toggle & Shortcut",
+      "action": "Collapse via close button, reopen via toolbar button, toggle via Alt+S shortcut",
+      "expected": "Provides complete visibility control via mouse and keyboard without losing simulation state",
+      "observed": "Margin column collapsed, reopened, and toggled via Alt+S",
+      "status": "PASS",
+      "error": null,
+      "durationMs": 0,
+      "screenshot": null,
+      "timestamp": "2026-10-15T06:32:22.581Z"
+    },
+    {
+      "chapter": "CHAPTER 9 · SIDEBARS & MOBILE",
+      "step": "9.3",
+      "title": "Keyboard Focus Suppression",
+      "action": "Focus text input and press Space key",
+      "expected": "Space is typed inside input; simulation play/pause listener does not intercept",
+      "observed": "Keyboard shortcut suppressed during text field edit",
+      "status": "PASS",
+      "error": null,
+      "durationMs": 0,
+      "screenshot": null,
+      "timestamp": "2026-10-15T06:32:23.241Z"
+    },
+    {
+      "chapter": "CHAPTER 9 · SIDEBARS & MOBILE",
+      "step": "9.4",
+      "title": "Mobile Responsive Adaptation (<800px)",
+      "action": "Resize viewport to 375x720, verify mobile layout, restore 1440x920 desktop view",
+      "expected": "Tape transport bar remains pinned to bottom; canvas remains touch-accessible",
+      "observed": "Mobile responsive adaptation confirmed, desktop viewport restored",
+      "status": "PASS",
+      "error": null,
+      "durationMs": 0,
+      "screenshot": "/Users/raghavnaidu/AutoMind-AI/demo/artifacts/09_mobile_viewport.png",
+      "timestamp": "2026-10-15T06:32:23.288Z"
+    },
+    {
+      "chapter": "CHAPTER 10 · FILE EXPORTS",
+      "step": "10.1",
+      "title": "Simple Graph Export Downloads",
+      "action": "Download SVG, PNG, JSON for '(a|b)*abb'",
+      "expected": "SVG is self-contained with solid #f8f9fa background; PNG is 3x high-DPI; JSON is schema-compliant",
+      "observed": "SVG (781x516), PNG (2343x1548 px, 3x retina), JSON (4 states)",
+      "status": "PASS",
+      "error": null,
+      "durationMs": 0,
+      "screenshot": null,
+      "timestamp": "2026-10-15T06:32:24.074Z"
+    },
+    {
+      "chapter": "CHAPTER 10 · FILE EXPORTS",
+      "step": "10.2",
+      "title": "Unclipped ViewBox Under Zoom/Pan",
+      "action": "Zoom in 3x, pan off-center, download SVG, and verify state count matches canonical layout",
+      "expected": "Exports compute absolute bounding box independent of interactive transform",
+      "observed": "Exported SVG retained all 5 states and unclipped viewBox: -50 -86 781 516",
+      "status": "PASS",
+      "error": null,
+      "durationMs": 0,
+      "screenshot": null,
+      "timestamp": "2026-10-15T06:32:24.356Z"
+    },
+    {
+      "chapter": "CHAPTER 10 · FILE EXPORTS",
+      "step": "10.3",
+      "title": "Larger Graph Export Downloads",
+      "action": "Download SVG, PNG, JSON for '(01)*101'",
+      "expected": "Scales canvas viewBox cleanly, exports unclipped high-DPI image and JSON",
+      "observed": "SVG (7 states), PNG (2730x1707 px), JSON (6 states)",
+      "status": "PASS",
+      "error": null,
+      "durationMs": 0,
+      "screenshot": null,
+      "timestamp": "2026-10-15T06:32:25.194Z"
+    },
+    {
+      "chapter": "CHAPTER 10 · FILE EXPORTS",
+      "step": "10.4",
+      "title": "Visual Verification of Downloaded SVG/PNG",
+      "action": "Open downloaded SVG directly in browser viewport and capture evidence",
+      "expected": "Downloaded file renders completely, crisp vector text and background intact",
+      "observed": "Rendered standalone SVG verified with solid #f8f9fa ground and legible typography",
+      "status": "PASS",
+      "error": null,
+      "durationMs": 0,
+      "screenshot": "/Users/raghavnaidu/AutoMind-AI/demo/artifacts/10_rendered_downloaded_svg.png",
+      "timestamp": "2026-10-15T06:32:25.441Z"
+    },
+    {
+      "chapter": "CHAPTER 11 · VERIFIED MATRIX & ROBUSTNESS",
+      "step": "11.1",
+      "title": "Syntax Error: '(a|b'",
+      "action": "Input malformed pattern '(a|b'",
+      "expected": "Identifies error (Unbalanced parenthesis), displays pointer at pos 0",
+      "observed": "Banner rendered: \"Syntax error at position 0 (character (): Unbalanced parenthesis: missing ')'. How to fix: Add a closing parenthesis ')' to match the opening '(' at position 0. (a|b ^\"",
+      "status": "PASS",
+      "error": null,
+      "durationMs": 0,
+      "screenshot": null,
+      "timestamp": "2026-10-15T06:32:25.568Z"
+    },
+    {
+      "chapter": "CHAPTER 11 · VERIFIED MATRIX & ROBUSTNESS",
+      "step": "11.1",
+      "title": "Syntax Error: 'a**'",
+      "action": "Input malformed pattern 'a**'",
+      "expected": "Identifies error (Multiple repeat operators '*' and '*'), displays pointer at pos 2",
+      "observed": "Banner rendered: \"Syntax error at position 2 (character *): Multiple repeat operators '*' and '*'. How to fix: Remove the adjacent quantifier. You cannot follow a '*' with another repeat operator directly. a** ^\"",
+      "status": "PASS",
+      "error": null,
+      "durationMs": 0,
+      "screenshot": null,
+      "timestamp": "2026-10-15T06:32:25.629Z"
+    },
+    {
+      "chapter": "CHAPTER 11 · VERIFIED MATRIX & ROBUSTNESS",
+      "step": "11.1",
+      "title": "Syntax Error: 'a|'",
+      "action": "Input malformed pattern 'a|'",
+      "expected": "Identifies error (Empty alternation branch after '|'), displays pointer at pos 1",
+      "observed": "Banner rendered: \"Syntax error at position 1 (character |): Empty alternation branch after '|'. How to fix: Remove duplicate '|' or provide an expression on both sides of the alternation bar. a| ^\"",
+      "status": "PASS",
+      "error": null,
+      "durationMs": 0,
+      "screenshot": null,
+      "timestamp": "2026-10-15T06:32:25.695Z"
+    },
+    {
+      "chapter": "CHAPTER 11 · VERIFIED MATRIX & ROBUSTNESS",
+      "step": "11.2",
+      "title": "Unsupported Feature: '\\1'",
+      "action": "Input non-regular construct '\\1'",
+      "expected": "Explains that non-regular features cannot be modeled by finite state automata",
+      "observed": "Application documented limitation without crashing",
+      "status": "PASS",
+      "error": null,
+      "durationMs": 0,
+      "screenshot": null,
+      "timestamp": "2026-10-15T06:32:26.342Z"
+    },
+    {
+      "chapter": "CHAPTER 11 · VERIFIED MATRIX & ROBUSTNESS",
+      "step": "11.2",
+      "title": "Unsupported Feature: '(?=abc)'",
+      "action": "Input non-regular construct '(?=abc)'",
+      "expected": "Explains that non-regular features cannot be modeled by finite state automata",
+      "observed": "Application documented limitation without crashing",
+      "status": "PASS",
+      "error": null,
+      "durationMs": 0,
+      "screenshot": null,
+      "timestamp": "2026-10-15T06:32:26.993Z"
+    },
+    {
+      "chapter": "CHAPTER 11 · VERIFIED MATRIX & ROBUSTNESS",
+      "step": "11.3",
+      "title": "Matrix: Literals & Concatenation (ab)",
+      "action": "Evaluate 'ab' on accepted 'ab' and rejected 'a'",
+      "expected": "NFA and DFA agree on acceptance; rejected string is correctly halted",
+      "observed": "Accepted 'ab' verified across representations; rejected 'a' (non-accepting-state)",
+      "status": "PASS",
+      "error": null,
+      "durationMs": 0,
+      "screenshot": null,
+      "timestamp": "2026-10-15T06:32:30.199Z"
+    },
+    {
+      "chapter": "CHAPTER 11 · VERIFIED MATRIX & ROBUSTNESS",
+      "step": "11.3",
+      "title": "Matrix: Alternation & Grouping ((a|b)c)",
+      "action": "Evaluate '(a|b)c' on accepted 'ac' and rejected 'c'",
+      "expected": "NFA and DFA agree on acceptance; rejected string is correctly halted",
+      "observed": "Accepted 'ac' verified across representations; rejected 'c' (missing-transition)",
+      "status": "PASS",
+      "error": null,
+      "durationMs": 0,
+      "screenshot": null,
+      "timestamp": "2026-10-15T06:32:33.403Z"
+    },
+    {
+      "chapter": "CHAPTER 11 · VERIFIED MATRIX & ROBUSTNESS",
+      "step": "11.3",
+      "title": "Matrix: Star, Plus & Optional Repetition (a*b+c?)",
+      "action": "Evaluate 'a*b+c?' on accepted 'b' and rejected 'a'",
+      "expected": "NFA and DFA agree on acceptance; rejected string is correctly halted",
+      "observed": "Accepted 'b' verified across representations; rejected 'a' (non-accepting-state)",
+      "status": "PASS",
+      "error": null,
+      "durationMs": 0,
+      "screenshot": null,
+      "timestamp": "2026-10-15T06:32:36.565Z"
+    },
+    {
+      "chapter": "CHAPTER 11 · VERIFIED MATRIX & ROBUSTNESS",
+      "step": "11.3",
+      "title": "Matrix: Character Classes, Ranges & Escapes ([a-z]\\d)",
+      "action": "Evaluate '[a-z]\\d' on accepted 'a0' and rejected '0a'",
+      "expected": "NFA and DFA agree on acceptance; rejected string is correctly halted",
+      "observed": "Accepted 'a0' verified across representations; rejected '0a' (missing-transition)",
+      "status": "PASS",
+      "error": null,
+      "durationMs": 0,
+      "screenshot": null,
+      "timestamp": "2026-10-15T06:32:39.845Z"
+    },
+    {
+      "chapter": "CHAPTER 11 · VERIFIED MATRIX & ROBUSTNESS",
+      "step": "11.3",
+      "title": "Matrix: Empty-String Acceptance ((a|b)*)",
+      "action": "Evaluate '(a|b)*' on accepted '' and rejected 'c'",
+      "expected": "NFA and DFA agree on acceptance; rejected string is correctly halted",
+      "observed": "Accepted '' verified across representations; rejected 'c' (missing-transition)",
+      "status": "PASS",
+      "error": null,
+      "durationMs": 0,
+      "screenshot": null,
+      "timestamp": "2026-10-15T06:32:42.413Z"
+    },
+    {
+      "chapter": "CHAPTER 11 · VERIFIED MATRIX & ROBUSTNESS",
+      "step": "11.3",
+      "title": "Matrix: Empty-String Rejection ((a|b)+)",
+      "action": "Evaluate '(a|b)+' on accepted 'a' and rejected ''",
+      "expected": "NFA and DFA agree on acceptance; rejected string is correctly halted",
+      "observed": "Accepted 'a' verified across representations; rejected '' (empty-rejected)",
+      "status": "PASS",
+      "error": null,
+      "durationMs": 0,
+      "screenshot": null,
+      "timestamp": "2026-10-15T06:32:45.285Z"
+    },
+    {
+      "chapter": "CHAPTER 11 · VERIFIED MATRIX & ROBUSTNESS",
+      "step": "11.3",
+      "title": "Matrix: Nested Expressions & Larger Automaton ((a|b)*abb)",
+      "action": "Evaluate '(a|b)*abb' on accepted 'abb' and rejected 'abab'",
+      "expected": "NFA and DFA agree on acceptance; rejected string is correctly halted",
+      "observed": "Accepted 'abb' verified across representations; rejected 'abab' (non-accepting-state)",
+      "status": "PASS",
+      "error": null,
+      "durationMs": 0,
+      "screenshot": null,
+      "timestamp": "2026-10-15T06:32:48.524Z"
+    },
+    {
+      "chapter": "CHAPTER 11 · VERIFIED MATRIX & ROBUSTNESS",
+      "step": "11.3",
+      "title": "Matrix: Larger Binary Automaton ((01)*101)",
+      "action": "Evaluate '(01)*101' on accepted '101' and rejected '0101'",
+      "expected": "NFA and DFA agree on acceptance; rejected string is correctly halted",
+      "observed": "Accepted '101' verified across representations; rejected '0101' (non-accepting-state)",
+      "status": "PASS",
+      "error": null,
+      "durationMs": 0,
+      "screenshot": null,
+      "timestamp": "2026-10-15T06:32:51.701Z"
+    },
+    {
+      "chapter": "CHAPTER 11 · VERIFIED MATRIX & ROBUSTNESS",
+      "step": "11.4",
+      "title": "Mid-Playback Modification Robustness",
+      "action": "Change regex to 'a*b+' while playback is in-flight",
+      "expected": "Cancels previous playback timer, resets tape to step 0, compiles new model safely",
+      "observed": "Pattern synchronized to a*b+ without UI crash or race condition",
+      "status": "PASS",
+      "error": null,
+      "durationMs": 0,
+      "screenshot": null,
+      "timestamp": "2026-10-15T06:32:53.235Z"
+    },
+    {
+      "chapter": "CHAPTER 11 · VERIFIED MATRIX & ROBUSTNESS",
+      "step": "11.5",
+      "title": "Long Inputs & Disjoint Alphabet Handling",
+      "action": "Evaluate 26-char string on 'a*b+' and disjoint symbol 'x'",
+      "expected": "Long strings compute in linear time; symbols outside alphabet trigger deterministic rejection",
+      "observed": "26-char string accepted; disjoint character 'x' rejected",
+      "status": "PASS",
+      "error": null,
+      "durationMs": 0,
+      "screenshot": "/Users/raghavnaidu/AutoMind-AI/demo/artifacts/11_robustness_completed.png",
+      "timestamp": "2026-10-15T06:32:55.954Z"
+    }
+  ]
+}

@@ -1,21 +1,30 @@
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { buildAutomatonLayout, LARGE_INPUT_THRESHOLD } from '../utils/dagreLayout.js';
+import { exportSvgFile, exportPngFile } from '../utils/diagramExport.js';
+import MinimizationModal from './MinimizationModal.jsx';
 
 export default function AutomataViewer({
   automaton,
   activeStage,
+  setActiveStage,
+  automataBundle,
   activeStateId,
+  activeStates = [],
   activeTransition,
   xaiExplanation,
   showEdgeImportance,
   setShowEdgeImportance,
+  sidebarVisible = true,
+  onToggleSidebar,
 }) {
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
   const [startPan, setStartPan] = useState({ x: 0, y: 0 });
   const [hoveredState, setHoveredState] = useState(null);
+  const [selectedState, setSelectedState] = useState(null);
   const [viewAsTable, setViewAsTable] = useState(false);
+  const [showMinimizationModal, setShowMinimizationModal] = useState(false);
 
   const containerRef = useRef(null);
   const svgRef = useRef(null);
@@ -25,7 +34,7 @@ export default function AutomataViewer({
 
   // Build hierarchical layout coordinates
   const layout = useMemo(() => {
-    return buildAutomatonLayout(automaton, { nodeRadius: 21 });
+    return buildAutomatonLayout(automaton, { nodeRadius: 22 });
   }, [automaton]);
 
   // Reset pan/zoom on automaton change
@@ -33,6 +42,7 @@ export default function AutomataViewer({
     setZoom(1);
     setPan({ x: 0, y: 0 });
     setHoveredState(null);
+    setSelectedState(null);
   }, [automaton?.id]);
 
   // Edge importance lookup from XAIExplanation
@@ -80,42 +90,17 @@ export default function AutomataViewer({
     setPan({ x: 0, y: 0 });
   };
 
-  // Export handlers
+  // Export handlers with high-resolution, unclipped standalone styling
   const handleExportSVG = () => {
     if (!svgRef.current) return;
-    const svgData = new XMLSerializer().serializeToString(svgRef.current);
-    const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${automaton?.name || 'automaton'}.svg`;
-    link.click();
-    URL.revokeObjectURL(url);
+    const filename = `${automaton?.name || automaton?.type || 'automaton'}.svg`;
+    exportSvgFile(svgRef.current, layout, automaton, filename);
   };
 
   const handleExportPNG = () => {
     if (!svgRef.current) return;
-    const svgData = new XMLSerializer().serializeToString(svgRef.current);
-    const canvas = document.createElement('canvas');
-    canvas.width = layout.width * 2;
-    canvas.height = layout.height * 2;
-    const ctx = canvas.getContext('2d');
-    const img = new Image();
-    const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
-    const url = URL.createObjectURL(svgBlob);
-
-    img.onload = () => {
-      ctx.fillStyle = '#f8f9fa';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      URL.revokeObjectURL(url);
-      const pngUrl = canvas.toDataURL('image/png');
-      const link = document.createElement('a');
-      link.href = pngUrl;
-      link.download = `${automaton?.name || 'automaton'}.png`;
-      link.click();
-    };
-    img.src = url;
+    const filename = `${automaton?.name || automaton?.type || 'automaton'}.png`;
+    exportPngFile(svgRef.current, layout, automaton, filename, 3); // 3x high-DPI resolution
   };
 
   const handleExportJSON = () => {
@@ -124,7 +109,7 @@ export default function AutomataViewer({
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `${automaton?.name || 'automaton'}.json`;
+    link.download = `${automaton?.name || automaton?.type || 'automaton'}.json`;
     link.click();
     URL.revokeObjectURL(url);
   };
@@ -135,8 +120,80 @@ export default function AutomataViewer({
     return states.find((s) => s.id === hoveredState) || null;
   }, [hoveredState, states]);
 
+  // List of active states (handles both single activeStateId and array of activeStates)
+  const activeList = useMemo(() => {
+    if (Array.isArray(activeStates) && activeStates.length > 0) {
+      return activeStates.map(String);
+    }
+    if (activeStateId !== undefined && activeStateId !== null) {
+      return [String(activeStateId)];
+    }
+    return [];
+  }, [activeStates, activeStateId]);
+
   return (
     <div className="drawing-area" id="drawing-area" role="region" aria-label="Automaton railway schematic">
+      {/* Representation Selector Tabs Bar */}
+      <div className="automata-representation-bar" role="tablist" aria-label="Automaton representation">
+        <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+          {setActiveStage && (
+            <>
+              <button
+                type="button"
+                className={`rep-tab ${activeStage === 'nfa' ? 'active' : ''}`}
+                onClick={() => setActiveStage('nfa')}
+                role="tab"
+                aria-selected={activeStage === 'nfa'}
+              >
+                <span>NFA (Thompson)</span>
+                <span className="rep-tab-count">{automataBundle?.nfa?.states?.length ?? 0} states</span>
+              </button>
+
+              <button
+                type="button"
+                className={`rep-tab ${activeStage === 'dfa' ? 'active' : ''}`}
+                onClick={() => setActiveStage('dfa')}
+                role="tab"
+                aria-selected={activeStage === 'dfa'}
+              >
+                <span>DFA (Subset)</span>
+                <span className="rep-tab-count">{automataBundle?.dfa?.states?.length ?? 0} states</span>
+              </button>
+
+              <button
+                type="button"
+                className={`rep-tab ${activeStage === 'minimized_dfa' ? 'active' : ''}`}
+                onClick={() => setActiveStage('minimized_dfa')}
+                role="tab"
+                aria-selected={activeStage === 'minimized_dfa'}
+              >
+                <span>Minimized DFA</span>
+                <span className="rep-tab-count">{automataBundle?.minimized_dfa?.states?.length ?? 0} states</span>
+              </button>
+            </>
+          )}
+
+          {/* Minimization Comparison Button */}
+          {automataBundle?.dfa && automataBundle?.minimized_dfa && (
+            <button
+              type="button"
+              className="btn-quiet-pill"
+              onClick={() => setShowMinimizationModal(true)}
+              style={{ fontSize: '11px', marginLeft: '0.3rem' }}
+            >
+              ⚖️ Compare Minimization
+            </button>
+          )}
+        </div>
+
+        {/* Current Automaton Meta Label */}
+        <div style={{ fontSize: '11px', color: 'var(--ink-secondary)', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+          <span>
+            Showing: <strong>{automaton?.type || 'Automaton'}</strong> ({states.length} states, {transitions.length} transitions)
+          </span>
+        </div>
+      </div>
+
       {/* Controls Bar: Pan, Zoom, Fit, View Table, Export */}
       <div className="drawing-canvas-controls" role="toolbar" aria-label="Diagram controls">
         <button
@@ -174,7 +231,7 @@ export default function AutomataViewer({
           onClick={() => setViewAsTable(!viewAsTable)}
           aria-pressed={viewAsTable}
         >
-          {viewAsTable ? 'View diagram' : 'View as table'}
+          {viewAsTable ? 'View diagram' : 'View table'}
         </button>
 
         {setShowEdgeImportance && (
@@ -191,252 +248,289 @@ export default function AutomataViewer({
 
         <span style={{ width: '1px', background: 'var(--ink-border)', margin: '0 0.2rem' }} />
 
-        <button type="button" className="btn-quiet" onClick={handleExportSVG}>
+        {/* Export Group */}
+        <button type="button" className="btn-quiet" onClick={handleExportSVG} title="Download vector SVG diagram">
           SVG
         </button>
-        <button type="button" className="btn-quiet" onClick={handleExportPNG}>
+        <button type="button" className="btn-quiet" onClick={handleExportPNG} title="Download high-resolution 3× PNG">
           PNG
         </button>
-        <button type="button" className="btn-quiet" onClick={handleExportJSON}>
+        <button type="button" className="btn-quiet" onClick={handleExportJSON} title="Download canonical JSON schema">
           JSON
         </button>
+
+        {onToggleSidebar && (
+          <>
+            <span style={{ width: '1px', background: 'var(--ink-border)', margin: '0 0.2rem' }} />
+            <button
+              type="button"
+              className="btn-quiet"
+              id="btn-toolbar-toggle-sidebar"
+              onClick={onToggleSidebar}
+              aria-label={sidebarVisible ? 'Hide sidebar' : 'Open sidebar'}
+              aria-expanded={sidebarVisible}
+              title={sidebarVisible ? 'Collapse sidebar' : 'Open sidebar'}
+            >
+              {sidebarVisible ? 'Hide sidebar' : 'Open sidebar'}
+            </button>
+          </>
+        )}
       </div>
+
+      {/* Persistent Reopen Sidebar Button when sidebar is collapsed */}
+      {!sidebarVisible && onToggleSidebar && (
+        <button
+          type="button"
+          id="btn-persistent-open-sidebar"
+          className="persistent-open-sidebar-btn"
+          onClick={onToggleSidebar}
+          aria-label="Open sidebar"
+          aria-expanded={false}
+          title="Open sidebar: Trace log and Explainability"
+        >
+          <span aria-hidden="true" style={{ marginRight: '4px' }}>◀</span> Open sidebar
+        </button>
+      )}
 
       {/* Large Input Warning Banner */}
       {layout.isLarge && (
         <div
           style={{
             position: 'absolute',
-            top: '3.25rem',
-            left: '0.75rem',
-            right: '0.75rem',
-            zIndex: 9,
-            padding: '0.4rem 0.8rem',
+            top: '5.2rem',
+            left: '1rem',
+            right: '1rem',
             background: 'var(--amber-tint)',
             border: '1px solid var(--amber-signal)',
-            borderRadius: 'var(--radius-control)',
+            padding: '0.4rem 0.8rem',
             fontSize: 'var(--text-xs)',
-            color: 'var(--ink-slate)',
+            zIndex: 10,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}
+          role="note"
+        >
+          <span>
+            Large automaton ({states.length} states). Simplified rendering active for performance.
+          </span>
+          <button
+            type="button"
+            className="btn-quiet"
+            onClick={() => setViewAsTable(true)}
+            style={{ fontSize: 'var(--text-xs)' }}
+          >
+            Switch to transition table
+          </button>
+        </div>
+      )}
+
+      {/* Hovered State Subsets Info Pill */}
+      {hoveredStateData?.metadata?.nfa_subset && (
+        <div
+          className="hover-subset-pill"
+          style={{
+            position: 'absolute',
+            bottom: selectedState ? '140px' : '0.85rem',
+            left: '0.85rem',
+            zIndex: 10,
+            background: 'var(--paper-panel)',
+            border: '1px solid var(--ink-border)',
+            borderRadius: 'var(--radius-control)',
+            padding: '0.35rem 0.65rem',
+            fontSize: 'var(--text-xs)',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.06)',
           }}
           role="status"
         >
-          <strong>Large automaton ({layout.stateCount} states):</strong> Simplified layout active to prevent browser freezing. Use Zoom controls to inspect nodes.
+          <strong>State {hoveredStateData.id}:</strong>{' '}
+          <span style={{ color: 'var(--ink-secondary)' }}>
+            Corresponds to NFA states: {'{' + (hoveredStateData.metadata.nfa_subset || []).join(', ') + '}'}
+          </span>
         </div>
       )}
 
-      {/* Hover Linkage Inspector Tooltip */}
-      {hoveredStateData && (
-        <div
-          style={{
-            position: 'absolute',
-            bottom: '1rem',
-            left: '1rem',
-            zIndex: 10,
-            background: 'var(--paper-panel)',
-            border: '1px solid var(--ink-slate)',
-            borderRadius: 'var(--radius-control)',
-            padding: '0.5rem 0.75rem',
-            fontSize: 'var(--text-xs)',
-            maxWidth: '320px',
-            boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
-          }}
-        >
-          <div>
-            <strong>State: </strong>
-            <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 'bold' }}>
-              {hoveredStateData.label || hoveredStateData.id}
-            </span>
-            {hoveredStateData.is_start && ' (Start)'}
-            {hoveredStateData.is_accepting && ' (Accepting)'}
+      {/* Selected State Inspector Card (Click to inspect) */}
+      {selectedState && (
+        <div className="state-inspector-drawer" role="region" aria-label="State details">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <strong style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-sm)' }}>
+                State {selectedState.label || selectedState.id}
+              </strong>
+              {selectedState.is_start && <span className="state-badge-start">Start State</span>}
+              {selectedState.is_accepting ? (
+                <span className="state-badge-accept">Accepting State (Double Ring)</span>
+              ) : (
+                <span className="state-badge-nonaccept">Non-Accepting</span>
+              )}
+            </div>
+            <button
+              type="button"
+              className="btn-quiet"
+              onClick={() => setSelectedState(null)}
+              aria-label="Close state inspector"
+              style={{ padding: '0.1rem 0.35rem' }}
+            >
+              ✕
+            </button>
           </div>
 
-          {/* NFA subset provenance */}
-          {hoveredStateData.metadata?.nfa_subset && (
-            <div style={{ marginTop: '0.2rem', color: 'var(--ink-secondary)' }}>
-              <strong>Origin NFA states: </strong>
-              <span style={{ fontFamily: 'var(--font-mono)' }}>
-                {hoveredStateData.metadata.nfa_subset.length > 0
-                  ? `{${hoveredStateData.metadata.nfa_subset.join(', ')}}`
-                  : '∅ (dead state)'}
+          <div style={{ fontSize: 'var(--text-xs)', color: 'var(--ink-slate)', display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+            {selectedState.metadata?.nfa_subset && (
+              <div>
+                <strong>Corresponds to NFA states: </strong>
+                <code>{'{' + selectedState.metadata.nfa_subset.join(', ') + '}'}</code>
+              </div>
+            )}
+            {selectedState.metadata?.merged_states && (
+              <div>
+                <strong>Merged from DFA states: </strong>
+                <code>{'{' + selectedState.metadata.merged_states.join(', ') + '}'}</code>
+              </div>
+            )}
+            <div>
+              <strong>Outgoing transitions: </strong>
+              <span>
+                {transitions
+                  .filter((t) => t.from_state === selectedState.id)
+                  .map((t) => `'${t.symbol}' → ${t.to_state}`)
+                  .join(', ') || 'None (dead end)'}
               </span>
             </div>
-          )}
-
-          {/* Merged DFA states */}
-          {hoveredStateData.metadata?.merged_states && (
-            <div style={{ marginTop: '0.2rem', color: 'var(--ink-secondary)' }}>
-              <strong>Merged DFA states: </strong>
-              <span style={{ fontFamily: 'var(--font-mono)' }}>
-                {`{${hoveredStateData.metadata.merged_states.join(', ')}}`}
-              </span>
-            </div>
-          )}
+          </div>
         </div>
       )}
 
-      {/* Main View Area: Either Diagram SVG or Accessible Table */}
+      {/* Table View Toggle */}
       {viewAsTable ? (
-        <div
-          style={{
-            padding: '4rem 1.5rem 1.5rem',
-            overflow: 'auto',
-            width: '100%',
-            height: '100%',
-          }}
-        >
-          <h3 style={{ marginBottom: '0.75rem' }}>Transition Table: {automaton?.name || activeStage}</h3>
-          <table className="greenbar-table" style={{ background: '#fff', border: 'var(--border-rule)' }}>
+        <div className="automata-table-view-container" style={{ padding: '1rem', overflowY: 'auto' }}>
+          <h4 style={{ margin: '0 0 0.5rem 0', fontSize: 'var(--text-sm)' }}>
+            Transition Table for {automaton?.name || automaton?.type}
+          </h4>
+          <table className="syntax-table">
             <thead>
               <tr>
-                <th>From State</th>
-                <th>Input Symbol</th>
-                <th>To State</th>
-                <th>Properties</th>
+                <th>State ID</th>
+                <th>Type</th>
+                <th>Underlying NFA Subset</th>
+                {automaton?.alphabet?.map((sym) => (
+                  <th key={sym}>On '{sym}'</th>
+                ))}
               </tr>
             </thead>
             <tbody>
-              {transitions.map((t, idx) => (
-                <tr key={idx} className="greenbar-row">
-                  <td>{t.from_state}</td>
-                  <td>{t.symbol}</td>
-                  <td>{t.to_state}</td>
+              {states.map((s) => (
+                <tr key={s.id} className={activeList.includes(String(s.id)) ? 'active-row' : ''}>
                   <td>
-                    {t.from_state === t.to_state ? 'Self-loop' : ''}
-                    {t.symbol === 'ε' ? ' Epsilon transition' : ''}
+                    <strong style={{ fontFamily: 'var(--font-mono)' }}>{s.label || s.id}</strong>
                   </td>
+                  <td>
+                    {s.is_start ? 'Start ' : ''}
+                    {s.is_accepting ? 'Accepting' : 'Normal'}
+                  </td>
+                  <td>
+                    <code>{'{' + (s.metadata?.nfa_subset || [s.id]).join(', ') + '}'}</code>
+                  </td>
+                  {automaton?.alphabet?.map((sym) => {
+                    const matchTrans = transitions.filter((t) => t.from_state === s.id && t.symbol === sym);
+                    return (
+                      <td key={sym}>
+                        {matchTrans.length > 0 ? (
+                          matchTrans.map((t) => t.to_state).join(', ')
+                        ) : (
+                          <span style={{ color: 'var(--ink-secondary)' }}>—</span>
+                        )}
+                      </td>
+                    );
+                  })}
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       ) : (
+        /* Interactive SVG Canvas */
         <div
-          className="drawing-canvas-container"
           ref={containerRef}
+          className="canvas-container"
+          style={{ width: '100%', height: '100%', cursor: isPanning ? 'grabbing' : 'grab' }}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseUp}
         >
           <svg
             ref={svgRef}
-            className="automaton-svg"
-            viewBox={`0 0 ${layout.width} ${layout.height}`}
-            width={layout.width}
-            height={layout.height}
+            id="automaton-svg"
+            className="automata-svg"
+            viewBox={`0 0 ${layout.width || 600} ${layout.height || 400}`}
             style={{
+              width: '100%',
+              height: '100%',
               transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
               transformOrigin: 'center center',
-              transition: isPanning ? 'none' : 'transform 0.05s ease-out',
             }}
           >
             <defs>
-              {/* Directed Edge Arrow Marker */}
-              <marker
-                id="arrow-slate"
-                viewBox="0 0 10 10"
-                refX="25"
-                refY="5"
-                markerWidth="6"
-                markerHeight="6"
-                orient="auto-start-reverse"
-              >
-                <path d="M 0 1 L 9 5 L 0 9 z" fill="var(--ink-slate)" />
+              <pattern id="dot-grid" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+                <circle cx="2" cy="2" r="1" fill="#cbd5e1" opacity="0.4" />
+              </pattern>
+              <marker id="arrowhead" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+                <path d="M 0 1.5 L 8 4.5 L 0 7.5 Z" fill="var(--ink-slate)" />
               </marker>
-
-              {/* Active Traversal Amber Arrow Marker */}
-              <marker
-                id="arrow-amber"
-                viewBox="0 0 10 10"
-                refX="25"
-                refY="5"
-                markerWidth="7"
-                markerHeight="7"
-                orient="auto-start-reverse"
-              >
-                <path d="M 0 1 L 9 5 L 0 9 z" fill="var(--amber-signal)" />
+              <marker id="arrowhead-active" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+                <path d="M 0 1.5 L 8 4.5 L 0 7.5 Z" fill="var(--amber-signal)" />
               </marker>
             </defs>
 
-            {/* Render Edges (Tracks) */}
+            {/* Grid Background */}
+            <rect width="100%" height="100%" fill="url(#dot-grid)" />
+
+            {/* Render Transitions (Edges) */}
             {layout.edges.map((edge, idx) => {
-              const u = layout.coords[edge.from_state];
-              const v = layout.coords[edge.to_state];
+              const fromId = edge.from ?? edge.from_state;
+              const toId = edge.to ?? edge.to_state;
+              const u = layout.coords[fromId];
+              const v = layout.coords[toId];
               if (!u || !v) return null;
 
-              const isSelf = edge.isSelfLoop;
+              const isSelfLoop = fromId === toId;
               const isActive =
                 activeTransition &&
-                String(activeTransition.from_state) === String(edge.from_state) &&
-                String(activeTransition.to_state) === String(edge.to_state);
+                String(activeTransition.from_state) === String(fromId) &&
+                String(activeTransition.to_state) === String(toId) &&
+                String(activeTransition.symbol) === String(edge.label);
 
-              // Calculate importance stroke width if toggle enabled
-              let strokeWidth = isActive ? 3.4 : 1.6;
-              if (showEdgeImportance && edge.importance > 0) {
-                strokeWidth = Math.max(strokeWidth, 1.6 + edge.importance * 3.5);
+              const edgeKey = `${fromId}->${toId}:${edge.label}`;
+              const importance = edgeImportanceMap[edgeKey] || 0;
+
+              let strokeColor = isActive ? 'var(--amber-signal)' : 'var(--ink-slate)';
+              let strokeWidth = isActive ? 3 : 1.75;
+              let markerId = isActive ? 'url(#arrowhead-active)' : 'url(#arrowhead)';
+
+              if (showEdgeImportance && importance > 0) {
+                strokeWidth = Math.max(1.75, importance * 5);
+                strokeColor = `rgba(217, 119, 6, ${Math.max(0.4, importance)})`;
               }
 
-              const strokeColor = isActive ? 'var(--amber-signal)' : 'var(--ink-slate)';
-              const markerId = isActive ? 'url(#arrow-amber)' : 'url(#arrow-slate)';
-
-              if (isSelf) {
-                // Self-loop on top of node
-                const loopPath = `M ${u.x - 12} ${u.y - 18} C ${u.x - 30} ${u.y - 65}, ${u.x + 30} ${u.y - 65}, ${u.x + 12} ${u.y - 18}`;
-                const labelX = u.x;
-                const labelY = u.y - 56;
-                const labelWidth = Math.max(22, edge.label.length * 8 + 8);
-
-                return (
-                  <g key={`edge-${idx}`}>
-                    <path
-                      d={loopPath}
-                      className={`svg-edge-path ${isActive ? 'active' : ''}`}
-                      stroke={strokeColor}
-                      strokeWidth={strokeWidth}
-                      markerEnd={markerId}
-                    />
-                    <rect
-                      x={labelX - labelWidth / 2}
-                      y={labelY - 8}
-                      width={labelWidth}
-                      height={16}
-                      rx={2}
-                      className="svg-edge-label-bg"
-                    />
-                    <text x={labelX} y={labelY + 1} className="svg-edge-label-text">
-                      {edge.label}
-                    </text>
-                  </g>
-                );
-              }
-
-              // Normal directed edge with slight curve
               let pathD = '';
               let labelX = (u.x + v.x) / 2;
               let labelY = (u.y + v.y) / 2;
 
-              if (edge.points && edge.points.length >= 3) {
-                // Dagre bezier control points
-                const pts = edge.points;
-                pathD = `M ${pts[0].x} ${pts[0].y} `;
-                for (let i = 1; i < pts.length - 1; i++) {
-                  const xc = (pts[i].x + pts[i + 1].x) / 2;
-                  const yc = (pts[i].y + pts[i + 1].y) / 2;
-                  pathD += `Q ${pts[i].x} ${pts[i].y}, ${xc} ${yc} `;
-                }
-                const last = pts[pts.length - 1];
-                pathD += `L ${last.x} ${last.y}`;
-                const mid = pts[Math.floor(pts.length / 2)];
-                labelX = mid.x;
-                labelY = mid.y;
+              if (isSelfLoop) {
+                const r = layout.nodeRadius;
+                const loopHeight = 38;
+                pathD = `M ${u.x - 10} ${u.y - r} C ${u.x - 25} ${u.y - r - loopHeight}, ${u.x + 25} ${u.y - r - loopHeight}, ${u.x + 10} ${u.y - r}`;
+                labelX = u.x;
+                labelY = u.y - r - loopHeight + 8;
               } else {
-                // Curved arc with perpendicular offset
                 const dx = v.x - u.x;
                 const dy = v.y - u.y;
-                const len = Math.sqrt(dx * dx + dy * dy) || 1;
-                const nx = -dy / len;
-                const ny = dx / len;
+                const dist = Math.hypot(dx, dy) || 1;
+                const nx = -dy / dist;
+                const ny = dx / dist;
                 const curveOffset = 18;
+
                 const ctrlX = labelX + nx * curveOffset;
                 const ctrlY = labelY + ny * curveOffset;
                 pathD = `M ${u.x} ${u.y} Q ${ctrlX} ${ctrlY} ${v.x} ${v.y}`;
@@ -444,7 +538,7 @@ export default function AutomataViewer({
                 labelY = ctrlY;
               }
 
-              const labelWidth = Math.max(20, edge.label.length * 8 + 8);
+              const labelWidth = Math.max(22, edge.label.length * 8 + 8);
 
               return (
                 <g key={`edge-${idx}`}>
@@ -477,18 +571,21 @@ export default function AutomataViewer({
 
               const isStart = s.is_start || automaton.start_state === s.id;
               const isAccepting = s.is_accepting;
-              const isActive = String(activeStateId) === String(s.id);
+              const isActive = activeList.includes(String(s.id));
+              const isDead = s.id.toLowerCase().includes('dead') || s.label?.toLowerCase().includes('dead');
+              const isSelected = selectedState?.id === s.id;
 
               return (
                 <g
                   key={s.id}
-                  className={`svg-state-group ${isActive ? 'active' : ''}`}
+                  className={`svg-state-group ${isActive ? 'active' : ''} ${isDead ? 'dead' : ''} ${isSelected ? 'selected' : ''}`}
                   transform={`translate(${pos.x}, ${pos.y})`}
                   onMouseEnter={() => setHoveredState(s.id)}
                   onMouseLeave={() => setHoveredState(null)}
+                  onClick={() => setSelectedState(s)}
                   tabIndex={0}
                   role="button"
-                  aria-label={`State ${s.label || s.id}${isStart ? ', start state' : ''}${isAccepting ? ', accepting state' : ''}`}
+                  aria-label={`State ${s.label || s.id}${isStart ? ', start state' : ''}${isAccepting ? ', accepting state' : ''}${isActive ? ', active' : ''}`}
                 >
                   {/* Start state incoming arrow */}
                   {isStart && (
@@ -509,7 +606,8 @@ export default function AutomataViewer({
                   {/* Core State Circle */}
                   <circle
                     r={layout.nodeRadius}
-                    className="svg-state-circle"
+                    className={`svg-state-circle ${isActive ? 'active' : ''}`}
+                    strokeDasharray={isDead ? '3 3' : undefined}
                   />
 
                   {/* State Monospace Label */}
@@ -522,6 +620,14 @@ export default function AutomataViewer({
           </svg>
         </div>
       )}
+
+      {/* Hopcroft Minimization Comparison Modal */}
+      <MinimizationModal
+        isOpen={showMinimizationModal}
+        onClose={() => setShowMinimizationModal(false)}
+        dfa={automataBundle?.dfa}
+        minDfa={automataBundle?.minimized_dfa}
+      />
     </div>
   );
 }

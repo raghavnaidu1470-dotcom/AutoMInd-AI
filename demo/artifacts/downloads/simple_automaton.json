@@ -1,0 +1,166 @@
+{
+  "id": "min_dfa_a58715ee",
+  "name": "Minimized DFA for (a|b)*abb",
+  "type": "MINIMIZED_DFA",
+  "alphabet": [
+    "a",
+    "b"
+  ],
+  "start_state": "q0",
+  "states": [
+    {
+      "id": "q0",
+      "label": "q0",
+      "is_start": true,
+      "is_accepting": false,
+      "metadata": {
+        "nfa_subset": [
+          "q0",
+          "q1",
+          "q2",
+          "q4",
+          "q5",
+          "q6",
+          "q7",
+          "q8"
+        ],
+        "merged_states": [
+          "q0",
+          "q2"
+        ]
+      }
+    },
+    {
+      "id": "q1",
+      "label": "q1",
+      "is_start": false,
+      "is_accepting": false,
+      "metadata": {
+        "nfa_subset": [
+          "q1",
+          "q2",
+          "q3",
+          "q4",
+          "q6",
+          "q7",
+          "q8",
+          "q9",
+          "q10"
+        ],
+        "merged_states": [
+          "q1"
+        ]
+      }
+    },
+    {
+      "id": "q2",
+      "label": "q2",
+      "is_start": false,
+      "is_accepting": false,
+      "metadata": {
+        "nfa_subset": [
+          "q1",
+          "q2",
+          "q4",
+          "q5",
+          "q6",
+          "q7",
+          "q8",
+          "q11",
+          "q12"
+        ],
+        "merged_states": [
+          "q3"
+        ]
+      }
+    },
+    {
+      "id": "q3",
+      "label": "q3",
+      "is_start": false,
+      "is_accepting": true,
+      "metadata": {
+        "nfa_subset": [
+          "q1",
+          "q2",
+          "q4",
+          "q5",
+          "q6",
+          "q7",
+          "q8",
+          "q13"
+        ],
+        "merged_states": [
+          "q4"
+        ]
+      }
+    }
+  ],
+  "transitions": [
+    {
+      "id": "mt0",
+      "from_state": "q0",
+      "to_state": "q1",
+      "symbol": "a",
+      "metadata": {}
+    },
+    {
+      "id": "mt1",
+      "from_state": "q0",
+      "to_state": "q0",
+      "symbol": "b",
+      "metadata": {}
+    },
+    {
+      "id": "mt2",
+      "from_state": "q1",
+      "to_state": "q1",
+      "symbol": "a",
+      "metadata": {}
+    },
+    {
+      "id": "mt3",
+      "from_state": "q1",
+      "to_state": "q2",
+      "symbol": "b",
+      "metadata": {}
+    },
+    {
+      "id": "mt4",
+      "from_state": "q2",
+      "to_state": "q1",
+      "symbol": "a",
+      "metadata": {}
+    },
+    {
+      "id": "mt5",
+      "from_state": "q2",
+      "to_state": "q3",
+      "symbol": "b",
+      "metadata": {}
+    },
+    {
+      "id": "mt6",
+      "from_state": "q3",
+      "to_state": "q1",
+      "symbol": "a",
+      "metadata": {}
+    },
+    {
+      "id": "mt7",
+      "from_state": "q3",
+      "to_state": "q0",
+      "symbol": "b",
+      "metadata": {}
+    }
+  ],
+  "metadata": {
+    "regex": "(a|b)*abb",
+    "state_count": 4,
+    "transition_count": 8,
+    "is_minimized": true,
+    "has_start_anchor": false,
+    "has_end_anchor": false,
+    "description": "Constructed using Hopcroft's DFA Minimization Algorithm"
+  }
+}

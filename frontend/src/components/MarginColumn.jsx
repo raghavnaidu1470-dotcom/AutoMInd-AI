@@ -50,6 +50,7 @@ export default function MarginColumn({
         {onClose && (
           <button
             type="button"
+            id="btn-close-margin-column"
             className="btn-quiet"
             onClick={onClose}
             title="Collapse margin column"

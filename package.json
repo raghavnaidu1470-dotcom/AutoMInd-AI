@@ -1,0 +1,23 @@
+{
+  "name": "automind-ai",
+  "version": "1.0.0",
+  "description": "AutoMind AI - Explainable Formal Language Recognition and Automata Analysis System",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "npm --prefix frontend run dev",
+    "start": "npm --prefix frontend run dev",
+    "start:backend": "backend/venv/bin/python -m uvicorn backend.api.main:app --port 8000",
+    "start:frontend": "npm --prefix frontend run dev",
+    "demo": "node demo/run_live_demo.js --headed",
+    "demo:fast": "node demo/run_live_demo.js --fast",
+    "demo:record": "node demo/run_live_demo.js --headed --record",
+    "demo:chapter": "node demo/run_live_demo.js --headed --chapter",
+    "test": "npm run test:backend && npm run test:frontend",
+    "test:backend": "backend/venv/bin/pytest tests/",
+    "test:frontend": "npm --prefix frontend test"
+  },
+  "dependencies": {
+    "playwright-core": "^1.50.0"
+  }
+}

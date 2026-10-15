@@ -1,0 +1,98 @@
+{
+  "timestamp": "2026-10-13T18:49:45.537Z",
+  "panelReopenResults": {
+    "navigationRailCycles": 3,
+    "inspectorMarginColumnCycles": 3,
+    "confirmedRepeatedReopen": true
+  },
+  "modalFocusResults": {
+    "walkMeThroughModal": {
+      "trapped": true,
+      "focusRestoredToTrigger": true,
+      "triggerId": "btn-walk-me-through"
+    }
+  },
+  "exportResults": {
+    "simpleAutomaton": {
+      "regex": "(a|b)*abb",
+      "representation": "Minimized DFA",
+      "stateCount": 4,
+      "transitionCount": 8,
+      "stateLabels": [
+        "q0",
+        "q1",
+        "q2",
+        "q3"
+      ],
+      "edgeLabels": [
+        "a",
+        "b",
+        "a",
+        "b",
+        "a",
+        "b",
+        "a",
+        "b"
+      ],
+      "svgDimensions": {
+        "width": 781,
+        "height": 516,
+        "viewBoxMinX": -50,
+        "viewBoxMinY": -86
+      },
+      "pngDimensions": {
+        "width": 2343,
+        "height": 1548,
+        "scale": "3x"
+      },
+      "exportIndependenceVerified": true
+    },
+    "largeAutomaton": {
+      "regex": "(state_alpha|state_beta)*sync(x|y)*",
+      "representation": "Minimized DFA",
+      "stateCount": 17,
+      "transitionCount": 35,
+      "stateLabels": [
+        "q0",
+        "q1",
+        "q2",
+        "q3",
+        "q4",
+        "q5",
+        "q6",
+        "q7",
+        "q8",
+        "q9",
+        "q10",
+        "q11",
+        "q12",
+        "q13",
+        "q14",
+        "q15",
+        "q16"
+      ],
+      "sampleEdgeLabels": [
+        "_, a, b, c, e, h, l, n, p, t, x, y",
+        "s",
+        "_, a, b, c, e, h, l, n, p, s, t, x, y",
+        "_, a, b, c, e, h, l, n, p, s, x",
+        "t",
+        "y",
+        "_, b, c, e, h, l, n, p, s, t, x, y",
+        "a"
+      ],
+      "svgDimensions": {
+        "width": 1813,
+        "height": 1164,
+        "viewBoxMinX": -50,
+        "viewBoxMinY": -86
+      },
+      "pngDimensions": {
+        "width": 5439,
+        "height": 3492,
+        "scale": "3x"
+      },
+      "exportIndependenceVerified": true
+    }
+  }
+}

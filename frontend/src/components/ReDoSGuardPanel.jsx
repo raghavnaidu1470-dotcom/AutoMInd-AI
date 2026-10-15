@@ -1,16 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../services/api';
+import { REDOS_EXAMPLES, runIsolatedWorkerMatch } from '../utils/redosExamples.js';
 
-const REDOS_PRESETS = [
-  { label: 'Select a ReDoS pattern...', regex: '' },
-  { label: '(a+)+$ (Exponential - Nested quantifiers)', regex: '(a+)+$' },
-  { label: '(a|aa)+$ (Exponential - Overlapping alternation)', regex: '(a|aa)+$' },
-  { label: '(a*)*b (Exponential - Kleene star nesting)', regex: '(a*)*b' },
-  { label: 'a*a*b (Polynomial - Adjacent repetition)', regex: 'a*a*b' },
-  { label: '(a|b)*abb (Linear / Safe)', regex: '(a|b)*abb' },
-];
+export default function ReDoSGuardPanel({ onLoadIntoStudio, initialRegex = '(a|b)*abb' }) {
+  // Tabs: 'user_analysis' | 'educational_presets'
+  const [activeTab, setActiveTab] = useState('user_analysis');
 
-export default function ReDoSGuardPanel({ onLoadIntoStudio, initialRegex = '(a+)+$' }) {
+  // User regex analysis state
   const [targetRegex, setTargetRegex] = useState(initialRegex);
   const [loading, setLoading] = useState(false);
   const [analysisResult, setAnalysisResult] = useState(null);
@@ -19,38 +15,79 @@ export default function ReDoSGuardPanel({ onLoadIntoStudio, initialRegex = '(a+)
   const [copiedAttack, setCopiedAttack] = useState(false);
   const [useLogScale, setUseLogScale] = useState(false);
 
-  // Trigger ReDoS analysis
+  // Request sequencing to discard stale responses
+  const analyzeSeqRef = useRef(0);
+
+  // Educational presets state
+  const [selectedExample, setSelectedExample] = useState(REDOS_EXAMPLES[0]);
+  const [presetDemoResult, setPresetDemoResult] = useState(null);
+  const [testingPreset, setTestingPreset] = useState(false);
+
+  // When initialRegex from studio changes, sync user analysis target
+  useEffect(() => {
+    if (initialRegex) {
+      setTargetRegex(initialRegex);
+    }
+  }, [initialRegex]);
+
+  // Trigger ReDoS analysis on the user's expression
   const handleAnalyze = async (regexToAnalyze = targetRegex) => {
     if (!regexToAnalyze || !regexToAnalyze.trim()) return;
+    const currentSeq = ++analyzeSeqRef.current;
     setLoading(true);
     setErrorMessage(null);
     try {
       const res = await api.analyzeReDoS(regexToAnalyze, true);
+      if (currentSeq !== analyzeSeqRef.current) return; // Discard stale response
       setAnalysisResult(res);
 
       if (res.is_vulnerable) {
-        // Automatically attempt safe language-equivalent repair
         try {
           const rep = await api.repairReDoS(regexToAnalyze, true);
+          if (currentSeq !== analyzeSeqRef.current) return;
           setRepairResult(rep);
-        } catch (repErr) {
-          setRepairResult(null);
+        } catch {
+          if (currentSeq === analyzeSeqRef.current) setRepairResult(null);
         }
       } else {
         setRepairResult(null);
       }
     } catch (err) {
-      setErrorMessage(err.message || 'Analysis failed');
+      if (currentSeq === analyzeSeqRef.current) {
+        setErrorMessage(err.message || 'Analysis failed');
+      }
     } finally {
-      setLoading(false);
+      if (currentSeq === analyzeSeqRef.current) {
+        setLoading(false);
+      }
     }
   };
 
-  const handleSelectPreset = (e) => {
-    const val = e.target.value;
-    if (val) {
-      setTargetRegex(val);
-      handleAnalyze(val);
+  const handleTestPresetBounded = async (regexStr, inputStr, typeLabel) => {
+    setTestingPreset(true);
+    setPresetDemoResult({
+      typeLabel,
+      inputTested: inputStr,
+      running: true,
+    });
+    try {
+      const res = await runIsolatedWorkerMatch(regexStr, inputStr, { timeoutMs: 100 });
+      setPresetDemoResult({
+        ...res,
+        typeLabel,
+        inputTested: inputStr,
+        running: false,
+      });
+    } catch (err) {
+      setPresetDemoResult({
+        success: false,
+        error: err.message,
+        typeLabel,
+        inputTested: inputStr,
+        running: false,
+      });
+    } finally {
+      setTestingPreset(false);
     }
   };
 
@@ -61,23 +98,20 @@ export default function ReDoSGuardPanel({ onLoadIntoStudio, initialRegex = '(a+)
     setTimeout(() => setCopiedAttack(false), 2000);
   };
 
-  // Render regex with offending span highlighted
-  const renderHighlightedRegex = () => {
-    if (!analysisResult) return targetRegex;
-    const spans = analysisResult.highlighted_spans || [];
-    if (spans.length === 0) {
-      return <span>{analysisResult.regex}</span>;
+  // Offending span rendering
+  const renderHighlightedRegex = (regexStr, spans) => {
+    if (!spans || spans.length === 0) {
+      return <span>{regexStr}</span>;
     }
-
     const span = spans[0];
-    const before = analysisResult.regex.slice(0, span.start);
-    const highlighted = analysisResult.regex.slice(span.start, span.end);
-    const after = analysisResult.regex.slice(span.end);
+    const before = regexStr.slice(0, span.start);
+    const highlighted = regexStr.slice(span.start, span.end);
+    const after = regexStr.slice(span.end);
 
     return (
       <span>
         <span>{before}</span>
-        <span className="offending-span" title={`Offending span [${span.start}..${span.end}]`}>
+        <span className="offending-span" title={`Risky token span [${span.start}..${span.end}]`}>
           {highlighted}
         </span>
         <span>{after}</span>
@@ -85,7 +119,7 @@ export default function ReDoSGuardPanel({ onLoadIntoStudio, initialRegex = '(a+)
     );
   };
 
-  // Render Benchmark Scaling SVG Chart (Linear vs Log Scale)
+  // Render Benchmark Scaling SVG Chart
   const renderBenchmarkChart = () => {
     const beforePoints = repairResult?.before_benchmark?.points || analysisResult?.empirical_benchmark?.points || [];
     const afterPoints = repairResult?.after_benchmark?.points || [];
@@ -110,136 +144,61 @@ export default function ReDoSGuardPanel({ onLoadIntoStudio, initialRegex = '(a+)
 
     const getYVal = (timeMs) => {
       if (useLogScale) {
-        const val = Math.max(0, timeMs);
-        return Math.log10(val + 1);
+        const minLog = Math.log10(0.1);
+        const maxLog = Math.log10(Math.max(rawMaxTime, 1));
+        const valLog = Math.log10(Math.max(timeMs, 0.1));
+        return height - padding.bottom - ((valLog - minLog) / Math.max(maxLog - minLog, 0.001)) * (height - padding.top - padding.bottom);
       }
-      return timeMs;
-    };
-
-    const maxChartY = getYVal(rawMaxTime);
-
-    const scaleY = (timeMs) => {
-      const yVal = getYVal(timeMs);
-      return height - padding.bottom - (yVal / Math.max(maxChartY, 1e-4)) * (height - padding.top - padding.bottom);
+      return height - padding.bottom - (timeMs / Math.max(rawMaxTime, 1)) * (height - padding.top - padding.bottom);
     };
 
     const makePath = (points) => {
       if (!points || points.length === 0) return '';
-      return points
-        .map((p, idx) => `${idx === 0 ? 'M' : 'L'} ${scaleX(p.length)} ${scaleY(p.duration_ms)}`)
-        .join(' ');
+      return points.map((p, idx) => `${idx === 0 ? 'M' : 'L'} ${scaleX(p.length)} ${getYVal(p.duration_ms)}`).join(' ');
     };
 
-    // Y Grid ticks
-    const yTicks = useLogScale
-      ? [0, 1, 2, 3].filter((logVal) => logVal <= maxChartY + 0.5).map((logVal) => ({
-          label: `${Math.round(Math.pow(10, logVal) - 1)}ms`,
-          y: height - padding.bottom - (logVal / Math.max(maxChartY, 1)) * (height - padding.top - padding.bottom),
-        }))
-      : [0, 0.25, 0.5, 0.75, 1.0].map((pct) => ({
-          label: `${Math.round(pct * rawMaxTime)}ms`,
-          y: height - padding.bottom - pct * (height - padding.top - padding.bottom),
-        }));
-
     return (
-      <div style={{ marginTop: '1rem', border: 'var(--border-rule)', background: 'var(--paper-panel)', padding: '0.85rem', borderRadius: 'var(--radius-control)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-          <div style={{ fontSize: 'var(--text-xs)', fontWeight: 700, color: 'var(--ink-slate)' }}>
-            Execution Scaling: Time vs. Input Length
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            {/* Log scale toggle */}
-            <button
-              type="button"
-              className="btn-quiet"
-              onClick={() => setUseLogScale(!useLogScale)}
-              aria-pressed={useLogScale}
-            >
-              {useLogScale ? 'Scale: Logarithmic (log₁₀)' : 'Scale: Linear'}
-            </button>
-
-            {/* Legend */}
-            <div style={{ display: 'flex', gap: '0.75rem', fontSize: '11px' }}>
-              <span style={{ color: 'var(--red-risk)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                <span style={{ width: 8, height: 8, background: 'var(--red-risk)', display: 'inline-block' }} />
-                Original
-              </span>
-              {afterPoints.length > 0 && (
-                <span style={{ color: 'var(--green-accept)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                  <span style={{ width: 8, height: 8, background: 'var(--green-accept)', display: 'inline-block' }} />
-                  Repaired (Linear)
-                </span>
-              )}
+      <div className="benchmark-chart-container" role="region" aria-label="Empirical Timing Growth Chart">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+          <div>
+            <span style={{ fontSize: 'var(--text-xs)', fontWeight: 700 }}>
+              Empirical Backtracking Benchmark (Backtracking Engine Timings)
+            </span>
+            <div style={{ fontSize: '10px', color: 'var(--ink-secondary)' }}>
+              Measured via sandboxed Python/JS subprocess execution on near-matching adversarial strings
             </div>
           </div>
+          <button
+            type="button"
+            className="btn-quiet"
+            style={{ fontSize: '11px' }}
+            onClick={() => setUseLogScale(!useLogScale)}
+            aria-pressed={useLogScale}
+          >
+            Scale: {useLogScale ? 'Logarithmic' : 'Linear'}
+          </button>
         </div>
 
-        <svg viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', height: 'auto', display: 'block' }}>
+        <svg viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', height: 'auto', background: 'var(--paper-panel)', border: 'var(--border-rule)', borderRadius: 'var(--radius-control)' }}>
           {/* Grid lines */}
-          {yTicks.map((tick, i) => (
-            <g key={i}>
-              <line
-                x1={padding.left}
-                y1={tick.y}
-                x2={width - padding.right}
-                y2={tick.y}
-                stroke="var(--ink-border-light)"
-                strokeDasharray="3 3"
-              />
-              <text
-                x={padding.left - 8}
-                y={tick.y + 4}
-                fill="var(--ink-secondary)"
-                fontSize="10"
-                fontFamily="var(--font-mono)"
-                textAnchor="end"
-              >
-                {tick.label}
-              </text>
-            </g>
-          ))}
+          <line x1={padding.left} y1={height - padding.bottom} x2={width - padding.right} y2={height - padding.bottom} stroke="var(--ink-border)" strokeWidth="1" />
+          <line x1={padding.left} y1={padding.top} x2={padding.left} y2={height - padding.bottom} stroke="var(--ink-border)" strokeWidth="1" />
 
-          {/* X axis line */}
-          <line
-            x1={padding.left}
-            y1={height - padding.bottom}
-            x2={width - padding.right}
-            y2={height - padding.bottom}
-            stroke="var(--ink-border)"
-          />
-
-          {/* Before repair path (Brick Red) */}
-          <path d={makePath(beforePoints)} fill="none" stroke="var(--red-risk)" strokeWidth="2" />
+          {/* Original vulnerable curve (Red) */}
+          <path d={makePath(beforePoints)} fill="none" stroke="var(--red-risk)" strokeWidth="2.5" strokeDasharray={repairResult ? '4 3' : undefined} />
           {beforePoints.map((p, idx) => (
-            <circle
-              key={`b-${idx}`}
-              cx={scaleX(p.length)}
-              cy={scaleY(p.duration_ms)}
-              r={p.timed_out ? 4 : 3}
-              fill={p.timed_out ? 'var(--red-risk)' : '#ffffff'}
-              stroke="var(--red-risk)"
-              strokeWidth="1.5"
-            >
-              <title>{`Length: ${p.length}, Duration: ${p.duration_ms.toFixed(2)}ms ${p.timed_out ? '(Timed out)' : ''}`}</title>
+            <circle key={`b-${idx}`} cx={scaleX(p.length)} cy={getYVal(p.duration_ms)} r="4" fill="var(--red-risk)">
+              <title>{`Input Length: ${p.length} chars, Duration: ${p.duration_ms.toFixed(2)}ms (Backtracking engine)`}</title>
             </circle>
           ))}
 
-          {/* After repair path (Muted Green) */}
+          {/* Repaired curve (Green, if repair benchmarked) */}
           {afterPoints.length > 0 && (
             <>
-              <path d={makePath(afterPoints)} fill="none" stroke="var(--green-accept)" strokeWidth="2" />
+              <path d={makePath(afterPoints)} fill="none" stroke="var(--green-accept)" strokeWidth="2.5" />
               {afterPoints.map((p, idx) => (
-                <circle
-                  key={`a-${idx}`}
-                  cx={scaleX(p.length)}
-                  cy={scaleY(p.duration_ms)}
-                  r={3}
-                  fill="#ffffff"
-                  stroke="var(--green-accept)"
-                  strokeWidth="1.5"
-                >
-                  <title>{`Length: ${p.length}, Duration: ${p.duration_ms.toFixed(2)}ms`}</title>
+                <circle key={`a-${idx}`} cx={scaleX(p.length)} cy={getYVal(p.duration_ms)} r="4" fill="var(--green-accept)">
+                  <title>{`Repaired: Length: ${p.length} chars, Duration: ${p.duration_ms.toFixed(2)}ms`}</title>
                 </circle>
               ))}
             </>
@@ -247,37 +206,15 @@ export default function ReDoSGuardPanel({ onLoadIntoStudio, initialRegex = '(a+)
 
           {/* X-axis ticks */}
           {beforePoints.map((p, idx) => (
-            <text
-              key={`x-${idx}`}
-              x={scaleX(p.length)}
-              y={height - padding.bottom + 14}
-              fill="var(--ink-secondary)"
-              fontSize="10"
-              fontFamily="var(--font-mono)"
-              textAnchor="middle"
-            >
+            <text key={`x-${idx}`} x={scaleX(p.length)} y={height - padding.bottom + 14} fill="var(--ink-secondary)" fontSize="10" fontFamily="var(--font-mono)" textAnchor="middle">
               {p.length}
             </text>
           ))}
 
-          {/* Axes labels */}
-          <text
-            x={width / 2}
-            y={height - 8}
-            fill="var(--ink-secondary)"
-            fontSize="10"
-            textAnchor="middle"
-          >
-            Attack string length (characters)
+          <text x={width / 2} y={height - 8} fill="var(--ink-secondary)" fontSize="10" textAnchor="middle">
+            Near-match string length (characters)
           </text>
-          <text
-            x={14}
-            y={height / 2}
-            transform={`rotate(-90 14 ${height / 2})`}
-            fill="var(--ink-secondary)"
-            fontSize="10"
-            textAnchor="middle"
-          >
+          <text x={14} y={height / 2} transform={`rotate(-90 14 ${height / 2})`} fill="var(--ink-secondary)" fontSize="10" textAnchor="middle">
             Duration (ms)
           </text>
         </svg>
@@ -291,214 +228,377 @@ export default function ReDoSGuardPanel({ onLoadIntoStudio, initialRegex = '(a+)
 
   return (
     <div className="redos-view" id="redos-view" role="region" aria-label="ReDoS Guard Screening & Repair">
-      {/* Header controls & pattern selector */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-        <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', flexWrap: 'wrap' }}>
-          <input
-            id="redos-target-input"
-            type="text"
-            className="input-code"
-            style={{ flex: '1 1 280px' }}
-            value={targetRegex}
-            onChange={(e) => setTargetRegex(e.target.value)}
-            placeholder="Enter regular expression to test for ReDoS..."
-            spellCheck="false"
-          />
-
-          <button
-            type="button"
-            id="btn-analyze-redos"
-            className="btn-run"
-            onClick={() => handleAnalyze()}
-            disabled={loading || !targetRegex.trim()}
-          >
-            {loading ? 'Screening...' : 'Screen regex'}
-          </button>
-
-          <select
-            className="select-examples"
-            onChange={handleSelectPreset}
-            defaultValue=""
-            aria-label="Load a standard ReDoS benchmark pattern"
-          >
-            {REDOS_PRESETS.map((p, idx) => (
-              <option key={idx} value={p.regex} disabled={!p.regex}>
-                {p.label}
-              </option>
-            ))}
-          </select>
+      {/* Educational Primer: Backtracking vs Automata Immunity */}
+      <div className="redos-education-primer">
+        <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'flex-start' }}>
+          <span style={{ fontSize: '20px' }}>🛡️</span>
+          <div>
+            <strong style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-slate)' }}>
+              How ReDoS Happens & Why Automata Are Immune
+            </strong>
+            <p style={{ margin: '0.25rem 0', fontSize: 'var(--text-xs)', color: 'var(--ink-slate)', lineHeight: 1.45 }}>
+              Many programming languages (JavaScript RegExp, Python <code>re</code>, PCRE) evaluate regular expressions using
+              <strong> backtracking engines</strong>. When an expression contains ambiguous nested quantifiers or overlapping choices,
+              the engine may explore millions of futile paths on adversarial near-matches, locking up CPUs.
+            </p>
+            <div style={{ padding: '0.35rem 0.6rem', background: 'var(--green-tint)', border: '1px solid var(--green-accept)', borderRadius: '3px', fontSize: '11px', color: 'var(--green-accept)' }}>
+              <strong>The Automata Immunity Guarantee:</strong> Pure Deterministic Finite Automata (DFAs, used by AutoMind and Google RE2)
+              evaluate in strict <em>linear time O(n)</em>. Because they do not backtrack, they are completely immune to ReDoS!
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Error alert */}
-      {errorMessage && (
-        <div className="syntax-error-banner" role="alert">
-          <div>
-            <strong>Error: </strong>
-            {errorMessage}
+      {/* Primary Navigation Tabs: User Analysis vs Educational Presets */}
+      <div className="redos-tab-strip" role="tablist" aria-label="ReDoS modes">
+        <button
+          type="button"
+          className={`redos-tab-btn ${activeTab === 'user_analysis' ? 'active' : ''}`}
+          onClick={() => setActiveTab('user_analysis')}
+          role="tab"
+          aria-selected={activeTab === 'user_analysis'}
+        >
+          🔍 Analyze Studio Regex (<code>{targetRegex}</code>)
+        </button>
+        <button
+          type="button"
+          className={`redos-tab-btn ${activeTab === 'educational_presets' ? 'active' : ''}`}
+          onClick={() => setActiveTab('educational_presets')}
+          role="tab"
+          aria-selected={activeTab === 'educational_presets'}
+        >
+          📚 Educational Presets Catalog ({REDOS_EXAMPLES.length} Archetypes)
+        </button>
+      </div>
+
+      {/* TAB 1: User Regex Analysis */}
+      {activeTab === 'user_analysis' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+          <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            <input
+              id="redos-target-input"
+              type="text"
+              className="input-code"
+              style={{ flex: '1 1 300px' }}
+              value={targetRegex}
+              onChange={(e) => setTargetRegex(e.target.value)}
+              placeholder="Enter regular expression to test for ReDoS..."
+              spellCheck="false"
+            />
+            <button
+              type="button"
+              id="btn-analyze-redos"
+              className="btn-run"
+              onClick={() => handleAnalyze()}
+              disabled={loading || !targetRegex.trim()}
+            >
+              {loading ? 'Screening...' : 'Screen this regex'}
+            </button>
           </div>
+
+          {errorMessage && (
+            <div className="syntax-error-banner" role="alert">
+              <strong>Analysis Error: </strong> {errorMessage}
+            </div>
+          )}
+
+          {analysisResult ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+              {/* Separate Static vs Empirical Findings */}
+              <div
+                className={`redos-risk-banner ${
+                  riskClass === 'exponential' || riskClass === 'polynomial'
+                    ? 'exponential'
+                    : 'linear'
+                }`}
+                role="status"
+              >
+                <div>
+                  <strong>Static Analysis Finding: </strong>
+                  {!isVulnerable ? (
+                    <span>Linear / Safe — No ambiguous overlapping cycles detected.</span>
+                  ) : (
+                    <span>
+                      {riskClass.toUpperCase()} AMBIGUOUS STRUCTURE ({analysisResult.degree ? `Degree ${analysisResult.degree}` : 'Exponential'})
+                    </span>
+                  )}
+                </div>
+
+                <div style={{ fontSize: 'var(--text-xs)', marginTop: '0.2rem' }}>
+                  <strong>Runtime Backtracking Measurement: </strong>
+                  {slowdownConfirmed ? (
+                    <span>Adversarial slowdown confirmed on backtracking engine benchmark.</span>
+                  ) : (
+                    <span>No severe timing spike observed on tested sample lengths (or evaluates linearly).</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Evaluated Expression Span */}
+              <div className="offending-regex-container">
+                <span style={{ fontSize: 'var(--text-xs)', color: 'var(--ink-secondary)', display: 'block', marginBottom: '0.25rem' }}>
+                  Analyzed Expression ({analysisResult.regex}):
+                </span>
+                <div>{renderHighlightedRegex(analysisResult.regex, analysisResult.highlighted_spans)}</div>
+              </div>
+
+              <div className="engineering-callout">
+                <div className="engineering-callout-title">AST Structural Diagnosis</div>
+                <p style={{ margin: 0, fontSize: 'var(--text-xs)' }}>{analysisResult.explanation}</p>
+              </div>
+
+              {/* Pumpable Attack String */}
+              {analysisResult.attack_string ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                  <div style={{ fontSize: 'var(--text-xs)', fontWeight: 700, color: 'var(--ink-slate)' }}>
+                    Adversarial Near-Match String:
+                  </div>
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      padding: '0.45rem 0.65rem',
+                      background: 'var(--paper-panel)',
+                      border: 'var(--border-rule)',
+                      borderRadius: 'var(--radius-control)',
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: 'var(--text-xs)',
+                      color: 'var(--red-risk)',
+                      wordBreak: 'break-all',
+                    }}
+                  >
+                    <span>{analysisResult.attack_string.sample_attack}</span>
+                    <button
+                      type="button"
+                      className="btn-quiet"
+                      style={{ marginLeft: '0.75rem', flexShrink: 0 }}
+                      onClick={() => handleCopyAttack(analysisResult.attack_string.sample_attack)}
+                    >
+                      {copiedAttack ? '✓ Copied' : 'Copy'}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--green-accept)' }}>
+                  ✓ No pumpable attack string detected. Evaluates safely across all inputs.
+                </div>
+              )}
+
+              {/* Empirical Chart */}
+              {renderBenchmarkChart()}
+
+              {/* Proposed Safe Repair */}
+              {repairResult && (
+                <div className="repair-card">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <strong style={{ fontSize: 'var(--text-sm)', color: 'var(--green-accept)' }}>
+                      Suggested Safe Alternative: <code>{repairResult.repaired_regex}</code>
+                    </strong>
+                    {onLoadIntoStudio && (
+                      <button
+                        type="button"
+                        className="btn-run"
+                        onClick={() => onLoadIntoStudio(repairResult.repaired_regex)}
+                        style={{ fontSize: '11px' }}
+                      >
+                        Load safe alternative into studio ▶
+                      </button>
+                    )}
+                  </div>
+                  <p style={{ fontSize: 'var(--text-xs)', color: 'var(--ink-slate)', margin: '0.4rem 0 0 0' }}>
+                    {repairResult.explanation}
+                  </p>
+                  <div style={{ fontSize: '11px', color: 'var(--ink-secondary)', marginTop: '0.2rem' }}>
+                    Formal equivalence: {repairResult.equivalence_verified ? 'Verified identical language' : 'Refactored pattern (verify language requirements)'}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div style={{ padding: '1.25rem', textAlign: 'center', background: 'var(--paper-panel)', border: 'var(--border-rule)', borderRadius: 'var(--radius-control)', color: 'var(--ink-secondary)', fontSize: 'var(--text-xs)' }}>
+              Click <strong>Screen this regex</strong> to inspect structural ambiguity and benchmark timing growth.
+            </div>
+          )}
         </div>
       )}
 
-      {/* Analysis Results Display */}
-      {analysisResult && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          {/* Verdict Banner distinguishing confirmed from structurally ambiguous */}
-          <div
-            className={`redos-risk-banner ${
-              riskClass === 'exponential' || riskClass === 'polynomial'
-                ? 'exponential'
-                : 'linear'
-            }`}
-            id="redos-verdict-banner"
-            role="status"
-          >
-            <div>
-              <strong>Verdict: </strong>
-              {!isVulnerable ? (
-                <span>Linear / Safe (no catastrophic backtracking detected)</span>
-              ) : slowdownConfirmed ? (
-                <span>Confirmed by measurement ({riskClass.toUpperCase()} BACKTRACKING RISK)</span>
-              ) : (
-                <span>Structurally ambiguous only ({riskClass.toUpperCase()} AMBIGUOUS PATHS)</span>
-              )}
-            </div>
+      {/* TAB 2: Educational Presets Catalog */}
+      {activeTab === 'educational_presets' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+          {/* Preset Selector Dropdown */}
+          <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            <label htmlFor="select-archetype" style={{ fontSize: 'var(--text-xs)', fontWeight: 700 }}>
+              Select Archetype:
+            </label>
+            <select
+              id="select-archetype"
+              className="select-examples"
+              style={{ flex: '1 1 320px' }}
+              value={selectedExample.id}
+              onChange={(e) => {
+                const found = REDOS_EXAMPLES.find((ex) => ex.id === e.target.value);
+                if (found) {
+                  setSelectedExample(found);
+                  setPresetDemoResult(null);
+                }
+              }}
+            >
+              {REDOS_EXAMPLES.map((ex) => (
+                <option key={ex.id} value={ex.id}>
+                  {ex.name} ({ex.category})
+                </option>
+              ))}
+            </select>
 
-            <span style={{ fontSize: 'var(--text-xs)' }}>
-              Confidence: {(analysisResult.confidence * 100).toFixed(0)}%
-            </span>
-          </div>
-
-          {/* Offending Span Underlined with Engineering Callout */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            <div className="offending-regex-container">
-              <span style={{ fontSize: 'var(--text-xs)', color: 'var(--ink-secondary)', display: 'block', marginBottom: '0.25rem' }}>
-                Evaluated expression with offending span:
-              </span>
-              <div>{renderHighlightedRegex()}</div>
-            </div>
-
-            <div className="engineering-callout">
-              <div className="engineering-callout-title">AST Diagnosis</div>
-              <p style={{ margin: 0 }}>{analysisResult.explanation}</p>
-            </div>
-          </div>
-
-          {/* Pumpable Attack String Section */}
-          {analysisResult.attack_string ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-              <div style={{ fontSize: 'var(--text-xs)', fontWeight: 700, color: 'var(--ink-slate)' }}>
-                Pumpable attack string
-              </div>
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  padding: '0.5rem 0.75rem',
-                  background: 'var(--paper-panel)',
-                  border: 'var(--border-rule)',
-                  borderRadius: 'var(--radius-control)',
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: 'var(--text-xs)',
-                  color: 'var(--red-risk)',
-                  wordBreak: 'break-all',
-                }}
+            {onLoadIntoStudio && (
+              <button
+                type="button"
+                className="btn-quiet-pill"
+                onClick={() => onLoadIntoStudio(selectedExample.regex)}
+                title="Load this archetype into the main studio"
               >
-                <span>{analysisResult.attack_string.sample_attack}</span>
+                Load into Studio ▶
+              </button>
+            )}
+          </div>
+
+          {/* Archetype Breakdown Card */}
+          <div className="redos-example-card" id="redos-archetype-card" role="region" aria-label="ReDoS Pattern Breakdown">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <div>
+                <strong style={{ fontSize: 'var(--text-sm)' }}>{selectedExample.name}</strong>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', color: 'var(--ink-slate)', marginTop: '0.2rem' }}>
+                  Pattern: <code>{selectedExample.regex}</code>
+                </div>
+              </div>
+              <span className={`redos-archetype-badge ${selectedExample.risk}`}>
+                {selectedExample.category}
+              </span>
+            </div>
+
+            {/* Explanation of the failure mode */}
+            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--ink-slate)', lineHeight: 1.45, background: 'var(--paper-subtle)', padding: '0.5rem', borderRadius: '4px' }}>
+              <strong>Why this pattern backtracks: </strong>
+              {selectedExample.explanation}
+            </div>
+
+            {/* Matching vs Adversarial Test Candidates */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '0.65rem' }}>
+              {/* Matching Candidate */}
+              <div style={{ padding: '0.5rem 0.65rem', background: 'var(--paper-subtle)', border: '1px solid var(--ink-border-light)', borderRadius: 'var(--radius-control)' }}>
+                <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--green-accept)', marginBottom: '0.2rem' }}>
+                  ✓ Benign matching input:
+                </div>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', marginBottom: '0.4rem', wordBreak: 'break-all' }}>
+                  "{selectedExample.matchingInput}"
+                </div>
                 <button
                   type="button"
                   className="btn-quiet"
-                  style={{ marginLeft: '0.75rem', flexShrink: 0 }}
-                  onClick={() => handleCopyAttack(analysisResult.attack_string.sample_attack)}
+                  style={{ fontSize: '11px' }}
+                  onClick={() => handleTestPresetBounded(selectedExample.regex, selectedExample.matchingInput, 'Benign match')}
                 >
-                  {copiedAttack ? '✓ Copied' : 'Copy'}
+                  Test matching input
                 </button>
               </div>
 
-              <div style={{ fontSize: '11px', color: 'var(--ink-secondary)' }}>
-                Tokens: prefix='{analysisResult.attack_string.prefix}', pump='{analysisResult.attack_string.pump}', suffix='{analysisResult.attack_string.suffix}'
+              {/* Adversarial Near-Match Candidate */}
+              <div style={{ padding: '0.5rem 0.65rem', background: 'var(--paper-subtle)', border: '1px solid var(--ink-border-light)', borderRadius: 'var(--radius-control)' }}>
+                <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--red-risk)', marginBottom: '0.2rem' }}>
+                  ⚠️ Adversarial near-match input:
+                </div>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', marginBottom: '0.4rem', wordBreak: 'break-all' }}>
+                  "{selectedExample.problematicInput}"
+                </div>
+                <button
+                  type="button"
+                  className="btn-quiet"
+                  style={{ fontSize: '11px', borderColor: 'var(--red-risk)', color: 'var(--red-risk)' }}
+                  onClick={() => handleTestPresetBounded(selectedExample.regex, selectedExample.problematicInput, 'Adversarial near-match')}
+                >
+                  Test near-match (bounded)
+                </button>
               </div>
             </div>
-          ) : (
-            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--green-accept)' }}>
-              ✓ No pumpable attack string exists. All cycle traversals evaluate in linear time.
-            </div>
-          )}
 
-          {/* Empirical Scaling Benchmark Chart */}
-          {renderBenchmarkChart()}
-
-          {/* Suggested Safe Language-Equivalent Repair with Diff */}
-          {repairResult && (
-            <div
-              style={{
-                marginTop: '0.5rem',
-                padding: '0.85rem',
-                border: 'var(--border-rule)',
-                borderRadius: 'var(--radius-control)',
-                background: repairResult.success ? 'var(--green-tint)' : 'var(--paper-subtle)',
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-                <div style={{ fontWeight: 700, fontSize: 'var(--text-sm)', color: repairResult.success ? 'var(--green-accept)' : 'var(--red-risk)' }}>
-                  {repairResult.success ? 'Language-equivalent safe repair' : 'Repair unavailable'}
-                </div>
-
-                {repairResult.equivalence_verified && (
-                  <span style={{ fontSize: '11px', color: 'var(--green-accept)', fontWeight: 600 }}>
-                    ✓ Minimized DFA language equivalence verified
+            {/* Bounded Test Execution Outcome */}
+            {presetDemoResult && (
+              <div
+                style={{
+                  padding: '0.5rem 0.75rem',
+                  background: presetDemoResult.interrupted
+                    ? 'var(--amber-tint)'
+                    : presetDemoResult.matched
+                    ? 'var(--green-tint)'
+                    : 'var(--paper-subtle)',
+                  border: `1px solid ${
+                    presetDemoResult.interrupted
+                      ? 'var(--amber-signal)'
+                      : presetDemoResult.matched
+                      ? 'var(--green-accept)'
+                      : 'var(--ink-border)'
+                  }`,
+                  borderRadius: 'var(--radius-control)',
+                  fontSize: 'var(--text-xs)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.25rem',
+                }}
+                role="status"
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.4rem' }}>
+                  <span>
+                    <strong>{presetDemoResult.typeLabel}: </strong>
+                    {presetDemoResult.running ? (
+                      <em>Testing in isolated background worker...</em>
+                    ) : presetDemoResult.interrupted ? (
+                      <span style={{ color: 'var(--amber-signal)', fontWeight: 700 }}>
+                        ⏱️ Interrupted after {presetDemoResult.durationMs}ms (Worker terminated)
+                      </span>
+                    ) : presetDemoResult.matched ? (
+                      <span style={{ color: 'var(--green-accept)', fontWeight: 700 }}>
+                        ✓ Matched successfully ({presetDemoResult.durationMs}ms)
+                      </span>
+                    ) : (
+                      <span>
+                        Rejected upon mismatch ({presetDemoResult.durationMs}ms)
+                      </span>
+                    )}
                   </span>
+                  <span style={{ fontSize: '11px', color: 'var(--ink-secondary)' }}>
+                    Isolation: {presetDemoResult.isolation || 'Web Worker'}
+                  </span>
+                </div>
+                {presetDemoResult.interrupted && (
+                  <div style={{ fontSize: '11px', color: 'var(--ink-slate)', lineHeight: 1.35 }}>
+                    Adversarial backtracking exceeded the 100ms deadline. The background execution thread was terminated via <code>worker.terminate()</code>, ensuring the browser UI remained completely responsive.
+                  </div>
                 )}
               </div>
+            )}
 
-              {repairResult.success ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  <div className="diff-container">
-                    <div className="diff-line-del">- {repairResult.original_regex}</div>
-                    <div className="diff-line-add">+ {repairResult.repaired_regex}</div>
-                  </div>
-
-                  <p style={{ margin: 0, fontSize: 'var(--text-xs)', color: 'var(--ink-slate)' }}>
-                    {repairResult.explanation}
-                  </p>
-
-                  {onLoadIntoStudio && (
-                    <div>
-                      <button
-                        type="button"
-                        className="btn-quiet"
-                        style={{ fontWeight: 600 }}
-                        onClick={() => onLoadIntoStudio(repairResult.repaired_regex)}
-                      >
-                        Load repaired regex into pipeline
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <p style={{ margin: 0, fontSize: 'var(--text-xs)', color: 'var(--ink-secondary)' }}>
-                  {repairResult.explanation || 'No safe equivalent repair found.'}
-                </p>
-              )}
+            {/* Safe Alternative Rewrite */}
+            <div style={{ padding: '0.5rem 0.65rem', background: 'var(--green-tint)', border: '1px solid var(--green-accept)', borderRadius: 'var(--radius-control)', marginTop: '0.25rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--green-accept)' }}>
+                  Safe alternative: <code style={{ fontFamily: 'var(--font-mono)' }}>{selectedExample.safeAlternative}</code>
+                </span>
+                {onLoadIntoStudio && (
+                  <button
+                    type="button"
+                    className="btn-quiet"
+                    style={{ fontSize: '11px', fontWeight: 700 }}
+                    onClick={() => onLoadIntoStudio(selectedExample.safeAlternative)}
+                  >
+                    Load safe alternative into studio ▶
+                  </button>
+                )}
+              </div>
+              <div style={{ fontSize: '11px', color: 'var(--ink-slate)', lineHeight: 1.4 }}>
+                {selectedExample.safeExplanation}
+              </div>
             </div>
-          )}
-
-          {/* Plain Statement of Tool Limits */}
-          <div
-            style={{
-              padding: '0.6rem 0.75rem',
-              background: 'var(--paper-panel)',
-              border: 'var(--border-rule)',
-              borderRadius: 'var(--radius-control)',
-              fontSize: '11px',
-              color: 'var(--ink-secondary)',
-              lineHeight: 1.45,
-            }}
-          >
-            <strong>Tool limits:</strong> ReDoS Guard analyzes regular languages recognized by finite state automata.
-            It does not support backreferences (e.g., <code>\1</code>), lookaround assertions (<code>(?=...)</code>, <code>(?!...)</code>),
-            or possessive quantifiers (<code>a++</code>), as those require non-regular match engines.
           </div>
         </div>
       )}

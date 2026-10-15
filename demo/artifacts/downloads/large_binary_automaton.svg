@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="910" height="569" viewBox="-50 -86 910 569" id="automaton-svg" version="1.1">
+    <!-- Solid technical blueprint paper ground -->
+    <rect x="-50" y="-86" width="910" height="569" fill="#f8f9fa" />
+    <!-- Fine 20px grid lines for technical blueprint look -->
+    <defs>
+      <pattern id="export-grid" width="20" height="20" patternUnits="userSpaceOnUse">
+        <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#e2e8f0" stroke-width="0.75" />
+      </pattern>
+    </defs>
+    <rect x="-50" y="-86" width="910" height="569" fill="url(#export-grid)" opacity="0.6" />
+    
+    
+    <!-- Blueprint Header -->
+    <g id="export-header-group">
+      <rect x="-34" y="-74" width="878" height="32" rx="4" fill="#ffffff" stroke="#cbd5e1" stroke-width="1" />
+      <text x="-22" y="-54" font-size="12" font-weight="700" fill="#1e293b">
+        Minimized DFA for (01)*101
+      </text>
+      <text x="832" y="-54" font-size="11" font-weight="500" fill="#475569" text-anchor="end">
+        6 states · 12 transitions · AutoMind-AI
+      </text>
+    </g>
+    
+  <defs>
+    <style type="text/css">
+      <![CDATA[
+        text {
+          font-family: 'JetBrains Mono', 'Courier New', Courier, monospace;
+          text-rendering: geometricPrecision;
+          -webkit-font-smoothing: antialiased;
+        }
+        .svg-edge-path {
+          fill: none;
+          stroke: #1e293b;
+          stroke-width: 1.8px;
+          stroke-linecap: round;
+          stroke-linejoin: round;
+        }
+        .svg-edge-path.active {
+          stroke: #d97706;
+          stroke-width: 3.2px;
+        }
+        .svg-edge-label-bg {
+          fill: #ffffff;
+          stroke: #cbd5e1;
+          stroke-width: 1px;
+          rx: 3px;
+        }
+        .svg-edge-label-text {
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 11px;
+          font-weight: 600;
+          fill: #1e293b;
+          text-anchor: middle;
+          dominant-baseline: central;
+        }
+        .svg-state-circle {
+          fill: #ffffff;
+          stroke: #1e293b;
+          stroke-width: 2px;
+        }
+        .svg-state-group.active .svg-state-circle {
+          stroke: #d97706;
+          stroke-width: 3px;
+          fill: #fef3c7;
+        }
+        .svg-state-circle.accepting-outer {
+          fill: none;
+          stroke: #1e293b;
+          stroke-width: 1.5px;
+        }
+        .svg-state-group.active .accepting-outer {
+          stroke: #d97706;
+        }
+        .svg-state-label {
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 12px;
+          font-weight: 700;
+          fill: #1e293b;
+          text-anchor: middle;
+          dominant-baseline: central;
+        }
+        .svg-start-arrow path {
+          stroke: #1e293b;
+          stroke-width: 2px;
+        }
+      ]]>
+    </style>
+  <pattern id="dot-grid" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1" fill="#cbd5e1" opacity="0.4"/></pattern><marker id="arrowhead" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"><path d="M 0 1.5 L 8 4.5 L 0 7.5 Z" fill="#1e293b"/></marker><marker id="arrowhead-active" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"><path d="M 0 1.5 L 8 4.5 L 0 7.5 Z" fill="#d97706"/></marker></defs><rect width="100%" height="100%" fill="url(#dot-grid)"/><g><path d="M 87 127 Q 156.83099376713716 124.19245489901732 216 87" class="svg-edge-path " stroke="#1e293b" stroke-width="1.75" marker-end="url(#arrowhead)"/><rect x="145.83099376713716" y="116.19245489901732" width="22" height="16" rx="2" class="svg-edge-label-bg"/><text x="156.83099376713716" y="125.19245489901732" class="svg-edge-label-text">0</text></g><g><path d="M 87 127 Q 144.01332562405642 172.86916939824954 216 186" class="svg-edge-path " stroke="#1e293b" stroke-width="1.75" marker-end="url(#arrowhead)"/><rect x="133.01332562405642" y="164.86916939824954" width="22" height="16" rx="2" class="svg-edge-label-bg"/><text x="144.01332562405642" y="173.86916939824954" class="svg-edge-label-text">1</text></g><g><path d="M 216 87 Q 406.2961741120906 139.71258026601325 603 157" class="svg-edge-path " stroke="#1e293b" stroke-width="1.75" marker-end="url(#arrowhead)"/><rect x="395.2961741120906" y="131.71258026601325" width="22" height="16" rx="2" class="svg-edge-label-bg"/><text x="406.2961741120906" y="140.71258026601325" class="svg-edge-label-text">0</text></g><g><path d="M 216 87 Q 146.16900623286284 89.80754510098268 87 127" class="svg-edge-path " stroke="#1e293b" stroke-width="1.75" marker-end="url(#arrowhead)"/><rect x="135.16900623286284" y="81.80754510098268" width="22" height="16" rx="2" class="svg-edge-label-bg"/><text x="146.16900623286284" y="90.80754510098268" class="svg-edge-label-text">1</text></g><g><path d="M 216 186 Q 276.422757096115 218.53214448670553 345 216" class="svg-edge-path " stroke="#1e293b" stroke-width="1.75" marker-end="url(#arrowhead)"/><rect x="265.422757096115" y="210.53214448670553" width="22" height="16" rx="2" class="svg-edge-label-bg"/><text x="276.422757096115" y="219.53214448670553" class="svg-edge-label-text">0</text></g><g><path d="M 216 186 Q 410.8450660118337 189.44967401998738 603 157" class="svg-edge-path " stroke="#1e293b" stroke-width="1.75" marker-end="url(#arrowhead)"/><rect x="399.8450660118337" y="181.44967401998738" width="22" height="16" rx="2" class="svg-edge-label-bg"/><text x="410.8450660118337" y="190.44967401998738" class="svg-edge-label-text">1</text></g><g><path d="M 593 135 C 578 97, 628 97, 613 135" class="svg-edge-path " stroke="#1e293b" stroke-width="1.75" marker-end="url(#arrowhead)"/><rect x="583" y="97" width="40" height="16" rx="2" class="svg-edge-label-bg"/><text x="603" y="106" class="svg-edge-label-text">0, 1</text></g><g><path d="M 345 216 Q 478.0126931163638 204.04703091562465 603 157" class="svg-edge-path " stroke="#1e293b" stroke-width="1.75" marker-end="url(#arrowhead)"/><rect x="467.0126931163638" y="196.04703091562465" width="22" height="16" rx="2" class="svg-edge-label-bg"/><text x="478.0126931163638" y="205.04703091562465" class="svg-edge-label-text">0</text></g><g><path d="M 345 216 Q 405.422757096115 248.53214448670553 474 246" class="svg-edge-path " stroke="#1e293b" stroke-width="1.75" marker-end="url(#arrowhead)"/><rect x="394.422757096115" y="240.53214448670553" width="22" height="16" rx="2" class="svg-edge-label-bg"/><text x="405.422757096115" y="249.53214448670553" class="svg-edge-label-text">1</text></g><g><path d="M 474 246 Q 548.721876940097 216.31597893564623 603 157" class="svg-edge-path " stroke="#1e293b" stroke-width="1.75" marker-end="url(#arrowhead)"/><rect x="528.721876940097" y="208.31597893564623" width="40" height="16" rx="2" class="svg-edge-label-bg"/><text x="548.721876940097" y="217.31597893564623" class="svg-edge-label-text">0, 1</text></g><g class="svg-state-group active  " transform="translate(87, 127)" tabindex="0" role="button" aria-label="State q0, start state, active"><g class="svg-start-arrow"><path d="M -46 0 L -25 0" stroke="#1e293b" stroke-width="2"/><path d="M -32 -5 L -25 0 L -32 5" fill="#1e293b"/></g><circle r="22" class="svg-state-circle active"/><text class="svg-state-label">q0</text></g><g class="svg-state-group   " transform="translate(216, 87)" tabindex="0" role="button" aria-label="State q1"><circle r="22" class="svg-state-circle "/><text class="svg-state-label">q1</text></g><g class="svg-state-group   " transform="translate(216, 186)" tabindex="0" role="button" aria-label="State q2"><circle r="22" class="svg-state-circle "/><text class="svg-state-label">q2</text></g><g class="svg-state-group   " transform="translate(603, 157)" tabindex="0" role="button" aria-label="State q3"><circle r="22" class="svg-state-circle "/><text class="svg-state-label">q3</text></g><g class="svg-state-group   " transform="translate(345, 216)" tabindex="0" role="button" aria-label="State q4"><circle r="22" class="svg-state-circle "/><text class="svg-state-label">q4</text></g><g class="svg-state-group   " transform="translate(474, 246)" tabindex="0" role="button" aria-label="State q5, accepting state"><circle r="26.5" class="svg-state-circle accepting-outer"/><circle r="22" class="svg-state-circle "/><text class="svg-state-label">q5</text></g></svg>

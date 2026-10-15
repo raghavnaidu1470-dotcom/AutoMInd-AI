@@ -1,12 +1,12 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 
 /**
- * ExecutionStepper Component (Pinned Tape Transport Bar)
- * ========================================================
+ * ExecutionStepper Component (Pinned Tape Transport Bar & Guided Simulation)
+ * =========================================================================
  * Mechanical-feeling tape transport pinned to the viewport bottom.
  * Renders individual rectangular cells with an advancing signal-amber read head,
  * full keyboard controls (Space, ArrowLeft, ArrowRight), scrubber, speed selector,
- * aria-live speech announcements, and plain-language termination verdicts.
+ * educational step-by-step reasoning callout, and plain-language termination verdicts.
  */
 
 export default function ExecutionStepper({
@@ -15,6 +15,7 @@ export default function ExecutionStepper({
   currentStepIndex = 0,
   setCurrentStepIndex,
   isNfa = false,
+  automatonType = 'DFA',
 }) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [speed, setSpeed] = useState(1); // 0.5x, 1x, 2x, 4x
@@ -57,9 +58,10 @@ export default function ExecutionStepper({
   // Keyboard navigation: Space = Play/Pause, ArrowLeft = Prev, ArrowRight = Next
   const handleKeyDown = useCallback(
     (e) => {
-      // Don't capture keyboard shortcuts if user is typing in a form input
+      // Do not interfere if a modal is open or if user is focused inside an input / editable field
+      if (document.querySelector('.modal-backdrop')) return;
       const tag = document.activeElement?.tagName?.toLowerCase();
-      if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+      if (tag === 'input' || tag === 'textarea' || tag === 'select' || document.activeElement?.isContentEditable) return;
 
       if (e.code === 'Space') {
         e.preventDefault();
@@ -89,33 +91,54 @@ export default function ExecutionStepper({
 
   // Formatting active states
   const activeStates = currentStep?.current_states || [];
+  const nextStates = currentStep?.next_states || [];
   const activeStatesText =
     activeStates.length > 0
       ? `{${activeStates.join(', ')}}`
       : simulationResult?.final_states?.length
       ? `{${simulationResult.final_states.join(', ')}}`
-      : '{q0}';
+      : '{start}';
 
   // Consumed vs remaining characters
   const chars = inputString.length > 0 ? inputString.split('') : [];
   const consumedCount = Math.min(currentStepIndex, chars.length);
   const remainingCount = Math.max(0, chars.length - consumedCount);
 
+  // Step explanation derivation
+  let stepExplanation = '';
+  if (currentStepIndex === 0) {
+    stepExplanation = isNfa
+      ? `Step 0: Initial configuration. Active state set is ${activeStatesText} (including start state and any states reachable via ε-closure).`
+      : `Step 0: Initial configuration. Machine begins at start state ${activeStatesText}. No symbols read yet.`;
+  } else if (currentStep) {
+    const sym = currentStep.symbol_read;
+    const trans = currentStep.transition_taken;
+    if (trans) {
+      if (isNfa) {
+        stepExplanation = `Step ${currentStepIndex}: Read symbol '${sym}'. Machine transitioned from states ${activeStatesText} to next active set {${nextStates.join(', ')}} via ε-closure over all matching transitions.`;
+      } else {
+        stepExplanation = `Step ${currentStepIndex}: Read symbol '${sym}'. Traversed deterministic transition ${trans.from_state} --${trans.symbol}--> ${trans.to_state}. Machine is now in state ${trans.to_state}.`;
+      }
+    } else {
+      stepExplanation = `Step ${currentStepIndex}: Attempted to read symbol '${sym}', but no valid transition exists from ${activeStatesText}. Machine halted.`;
+    }
+  }
+
   // Plain language verdict
   let verdictMessage = '';
   if (isFinished) {
     if (isAccepted) {
-      verdictMessage = `Accepted: reached accepting state ${activeStatesText} after ${maxStep} steps.`;
+      verdictMessage = `✓ Accepted: Reached accepting state ${activeStatesText} after consuming entire input (${maxStep} steps).`;
     } else {
       if (currentStep?.symbol_read && !currentStep?.transition_taken) {
-        verdictMessage = `Rejected: no transition for '${currentStep.symbol_read}' from ${activeStatesText}.`;
+        verdictMessage = `✕ Rejected: Stuck at character '${currentStep.symbol_read}' with no outgoing transition from ${activeStatesText}.`;
       } else {
-        verdictMessage = `Rejected: terminated in non-accepting state ${activeStatesText}.`;
+        verdictMessage = `✕ Rejected: Input fully consumed, but final active state ${activeStatesText} is not an accepting state.`;
       }
     }
   }
 
-  // Aria live text description
+  // Screen reader live description
   const liveAnnouncement = isFinished
     ? verdictMessage
     : `Step ${currentStepIndex} of ${maxStep}. Reading character '${chars[currentStepIndex - 1] || 'start'}'. Active states: ${activeStatesText}.`;
@@ -125,6 +148,24 @@ export default function ExecutionStepper({
       {/* Invisible Screen Reader Announcement */}
       <div className="sr-only" aria-live="polite" aria-atomic="true">
         {liveAnnouncement}
+      </div>
+
+      {/* Guided Step Explanation Bar */}
+      <div className="guided-step-banner" role="status">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1 }}>
+          <span className="guided-step-badge">
+            {isFinished ? 'Simulation Complete' : `Step ${currentStepIndex} / ${maxStep}`}
+          </span>
+          <span className="guided-step-text">
+            {isFinished ? verdictMessage : stepExplanation}
+          </span>
+        </div>
+
+        {isNfa && activeStates.length > 1 && (
+          <span className="nfa-branching-tag" title="In NFAs, multiple active states represent all valid branches explored simultaneously">
+            Nondeterministic branch: {activeStates.length} active states
+          </span>
+        )}
       </div>
 
       <div className="tape-transport-controls">
@@ -138,10 +179,10 @@ export default function ExecutionStepper({
               setCurrentStepIndex(0);
             }}
             disabled={currentStepIndex === 0}
-            title="Jump to start (First)"
-            aria-label="Jump to start"
+            title="Reset to step 0 (First)"
+            aria-label="Reset to step 0"
           >
-            |◀ First
+            |◀ Reset
           </button>
 
           <button
@@ -183,7 +224,7 @@ export default function ExecutionStepper({
             title="Step forward (Right arrow)"
             aria-label="Step forward"
           >
-            Step ▶
+            Next ▶
           </button>
 
           <button
@@ -194,8 +235,8 @@ export default function ExecutionStepper({
               setCurrentStepIndex(maxStep);
             }}
             disabled={currentStepIndex >= maxStep}
-            title="Jump to end (Last)"
-            aria-label="Jump to end"
+            title="Jump to completion"
+            aria-label="Jump to completion"
           >
             Last ▶|
           </button>
@@ -241,7 +282,7 @@ export default function ExecutionStepper({
         {chars.length === 0 ? (
           <div className="tape-cell active" role="listitem">
             <span className="tape-read-head" aria-hidden="true" />
-            ε
+            <span style={{ fontStyle: 'italic', color: 'var(--amber-signal)' }}>ε (empty string)</span>
           </div>
         ) : (
           chars.map((char, idx) => {
@@ -273,7 +314,7 @@ export default function ExecutionStepper({
           <span style={{ margin: '0 0.5rem', color: 'var(--ink-border)' }}>|</span>
           <span>
             Active: <strong>{activeStatesText}</strong>
-            {isNfa && activeStates.length > 1 ? ` (${activeStates.length} active states)` : ''}
+            {isNfa && activeStates.length > 1 ? ` (${activeStates.length} states)` : ''}
           </span>
           <span style={{ margin: '0 0.5rem', color: 'var(--ink-border)' }}>|</span>
           <span>
